@@ -50,6 +50,7 @@ export default function FlashCardDetailPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [gifKey, setGifKey] = useState(0);
   const [showGif, setShowGif] = useState(false);
+  const [onGif, setOnGif] = useState(false);
   const [gifType, setGifType] = useState<"correct" | "incorrect">("correct");
 
   const { data, isLoading, error } = useQuery({
@@ -215,11 +216,13 @@ export default function FlashCardDetailPage() {
               </p>
             </header>
             <div className="relative mb-4">
-              <GifDisplay
-                className="hidden lg:block absolute  -right-10 w-48"
-                type={gifType}
-                show={showGif}
-              />
+              {onGif && (
+                <GifDisplay
+                  className="hidden 2xl:block absolute  -right-10 w-48"
+                  type={gifType}
+                  show={showGif}
+                />
+              )}
 
               <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
                 <div className="w-full lg:flex-1 max-w-2xl">
@@ -257,7 +260,7 @@ export default function FlashCardDetailPage() {
                       htmlFor="auto-next"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700 dark:text-slate-300"
                     >
-                      Tự động chuyển tiếp khi đúng
+                      Tự động chuyển
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -270,8 +273,23 @@ export default function FlashCardDetailPage() {
                       htmlFor="infinite-loop"
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700 dark:text-slate-300"
                     >
-                      Vòng lặp vô hạn (ưu tiên câu sai)
+                      Vô hạn
                     </label>
+                  </div>
+                  <div className="2xl:block">
+                    <div className="flex items-center space-x-2 ">
+                      <Switch
+                        id="on-gif"
+                        checked={onGif}
+                        onCheckedChange={setOnGif}
+                      />
+                      <label
+                        htmlFor="on-gif"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-700 dark:text-slate-300"
+                      >
+                        Bật GIF
+                      </label>
+                    </div>
                   </div>
                 </div>
 
