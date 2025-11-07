@@ -1,8 +1,7 @@
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Question } from "@/types/question.type";
 import { ProgressItem } from "@/types/flashCard.type";
 
-// ⭐ Pure function để tạo random number từ string
 function hashCode(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -74,15 +73,12 @@ export function usePriorityQueue(
     });
   }, [questions, mergedProgress, isInfiniteLoop, questionVersion]);
 
-  // ⭐ Freeze queue khi questionVersion thay đổi (sau goToNext)
   useEffect(() => {
     if (priorityQueue.length > 0) {
       setFrozenQueue([...priorityQueue]);
-      console.log("🔒 Frozen queue updated");
     }
-  }, [questionVersion, priorityQueue.length]); // ⭐ Chỉ update khi version thay đổi
+  }, [questionVersion, priorityQueue.length]);
 
-  // ⭐ Lấy câu hiện tại từ frozenQueue
   const currentQuestion = useMemo(() => {
     if (frozenQueue.length === 0) return null;
 
@@ -103,12 +99,6 @@ export function usePriorityQueue(
         newMap.set(questionId, Math.max(currentWeight - 2, 0));
       }
 
-      console.log(
-        `⚖️ Weight: ${questionId.slice(0, 8)} ${currentWeight} → ${newMap.get(
-          questionId
-        )}`
-      );
-
       return newMap;
     });
 
@@ -116,12 +106,8 @@ export function usePriorityQueue(
   }, []);
 
   const goToNext = useCallback(() => {
-    console.log("🔓 Moving to next question");
-
-    // ⭐ Tăng số thứ tự câu
     setQuestionNumber((prev) => prev + 1);
 
-    // ⭐ Tăng version → useEffect sẽ freeze queue mới
     setQuestionVersion((v) => v + 1);
 
     if (!isInfiniteLoop) {

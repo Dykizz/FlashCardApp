@@ -8,6 +8,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
 import { FlashCardSchema } from "@/models/FlashCard";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
+import { QuestionSchema } from "@/models/Question"; // ⭐ Import QuestionSchema
 
 interface FlashCardDocument {
   _id: mongoose.Types.ObjectId;
@@ -52,12 +53,16 @@ async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
   }
 
   try {
+    // ⭐ Register models
     const FlashCardModel =
       mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
 
     const FlashCardProgressModel =
       mongoose.models.FlashCardProgress ||
       mongoose.model("FlashCardProgress", FlashCardProgressSchema);
+
+    const QuestionModel =
+      mongoose.models.Question || mongoose.model("Question", QuestionSchema); // ⭐ Register Question model
 
     const flashcard = await getCached<FlashCardDocument | null>(
       `flashcards:${id}`,
@@ -79,7 +84,6 @@ async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
 
     const questions = flashcard.questionIds;
 
-    // ⭐ Tìm hoặc tạo progress
     let flashcardProgress = await FlashCardProgressModel.findOne({
       flashCardId: flashcard._id,
       userId: req.user.userId,

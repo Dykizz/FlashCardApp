@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useQueryClient } from "@tanstack/react-query";
 
 const USERNAME_REGEX = /^[a-z0-9_-]+$/;
 
@@ -27,6 +28,7 @@ interface LoginFormData {
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -67,7 +69,7 @@ export default function LoginPage() {
       if (responseData?.user) {
         localStorage.setItem("user", JSON.stringify(responseData.user));
       }
-
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       showToast({
         description: "Đăng nhập thành công",
         type: "success",

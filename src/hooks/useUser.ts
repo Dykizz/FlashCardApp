@@ -1,35 +1,57 @@
-"use client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-import { useState, useEffect } from "react";
-import { IUser } from "@/types/user.type";
+interface User {
+  userId: string;
+  username: string;
+  displayName: string;
+  role: string;
+}
 
 export function useUser() {
-  const [user, setUser] = useState<IUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useQuery<User | null>({
+    queryKey: ["user"], // ⭐ Add queryKey
+    queryFn: async () => {
+      const userStr = localStorage.getItem("user");
+      const token = localStorage.getItem("accessToken");
+
+      if (!userStr || !token) {
+        return null;
       }
-    } catch (error) {
-      console.error("Error parsing user from localStorage:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+  });
+
+  // ⭐ Listen to storage changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [queryClient]);
 
   const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
-    setUser(null);
+    queryClient.setQueryData(["user"], null);
+    queryClient.invalidateQueries({ queryKey: ["user"] });
   };
 
-  const updateUser = (newUser: IUser) => {
-    localStorage.setItem("user", JSON.stringify(newUser));
-    setUser(newUser);
-  };
-
-  return { user, isLoading, logout, updateUser };
+  return { user, isLoading, error, logout };
 }

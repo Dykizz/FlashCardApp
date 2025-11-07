@@ -48,7 +48,7 @@ export default function FlashCardDetailPage() {
   const [isFlipping, setIsFlipping] = useState(false);
   const [isInfiniteLoop, setIsInfiniteLoop] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
-
+  const [gifKey, setGifKey] = useState(0);
   const [showGif, setShowGif] = useState(false);
   const [gifType, setGifType] = useState<"correct" | "incorrect">("correct");
 
@@ -81,40 +81,6 @@ export default function FlashCardDetailPage() {
     progress?.progress || [],
     isInfiniteLoop
   );
-
-  // ⭐ Preload GIFs ngay khi vào trang
-  useEffect(() => {
-    // Preload direct image URLs để browser cache
-    const gifsToPreload = [
-      // Correct GIFs
-      "https://i.gifer.com/Aq.gif",
-      "https://i.gifer.com/5e1.gif",
-      "https://i.gifer.com/2DV.gif",
-      "https://i.gifer.com/fxSL.gif",
-      "https://i.gifer.com/i9.gif",
-      "https://i.gifer.com/Bt4.gif",
-      "https://i.gifer.com/2DV.gif",
-      // Incorrect GIFs
-      "https://i.gifer.com/1ze3.gif",
-      "https://i.gifer.com/1vms.gif",
-      "https://i.gifer.com/Elga.gif",
-      "https://i.gifer.com/xC5.gif",
-      "https://i.gifer.com/2yOW.gif",
-    ];
-
-    gifsToPreload.forEach((url) => {
-      // Method 1: Link preload tag
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.href = url;
-      link.as = "image";
-      document.head.appendChild(link);
-
-      // Method 2: Image object (backup)
-      const img = new Image();
-      img.src = url;
-    });
-  }, []);
 
   useEffect(() => {
     if (error) {
@@ -171,10 +137,12 @@ export default function FlashCardDetailPage() {
         setFeedbackState("correct");
         setGifType("correct");
         setShowGif(true);
+        setGifKey(0);
       } else {
         setFeedbackState("incorrect");
         setGifType("incorrect");
         setShowGif(true);
+        setGifKey((prev) => prev + 1);
         setTimeout(() => {
           resetCardState();
         }, 2000);
@@ -214,7 +182,7 @@ export default function FlashCardDetailPage() {
           <Card className="text-center max-w-2xl mx-auto">
             <CardHeader>
               <CardTitle className="text-2xl sm:text-3xl font-bold">
-                🎉 Chúc mừng! 🎉
+                Chúc mừng!
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -270,6 +238,7 @@ export default function FlashCardDetailPage() {
                         selectedOption={selectedOption}
                         onSelectOption={handleSelectOption}
                         feedbackState={feedbackState}
+                        key={gifKey}
                       />
                     )}
                   </div>

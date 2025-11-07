@@ -1,14 +1,8 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Question } from "@/types/question.type";
 import KatexContentRender from "@/components/KatexContentRender";
-
+import { Check } from "lucide-react";
 interface FlashcardProps {
   card: Question;
   selectedOption: number | null;
@@ -16,23 +10,6 @@ interface FlashcardProps {
   feedbackState: "idle" | "correct" | "incorrect";
   index: number;
 }
-
-const CorrectIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-5 w-5 text-green-500"
-  >
-    <path d="M20 6 9 17l-5-5" />
-  </svg>
-);
 
 export const Flashcard: React.FC<FlashcardProps> = ({
   card,
@@ -87,7 +64,9 @@ export const Flashcard: React.FC<FlashcardProps> = ({
               >
                 <KatexContentRender content={option} border={false} />
                 {feedbackState === "correct" &&
-                  index === card.correctAnswer && <CorrectIcon />}
+                  index === card.correctAnswer && (
+                    <Check className="size-4 dark:text-green-300 text-green-500" />
+                  )}
               </button>
             ))}
           </div>

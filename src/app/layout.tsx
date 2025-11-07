@@ -44,7 +44,7 @@ export default function RootLayout({
           </QueryProvider>
         </ThemeProvider>
         <footer className="border-t bg-white/50 dark:bg-slate-950/50 backdrop-blur flex justify-center items-center p-5">
-          <span>© 2025 Flash Card App. All rights reserved.</span>
+          <span>© 2025 Flash Card App. All rights reserved. (DCT123C1)</span>
         </footer>
       </body>
     </html>
