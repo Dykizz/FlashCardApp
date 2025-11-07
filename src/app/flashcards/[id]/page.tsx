@@ -40,7 +40,8 @@ async function fetchFlashcard(id: string): Promise<{
 }
 
 export default function FlashCardDetailPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedbackState, setFeedbackState] = useState<FeedbackState>("idle");
   const [autoNext, setAutoNext] = useState(false);
