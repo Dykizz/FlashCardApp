@@ -10,13 +10,13 @@ import { IUser } from "@/types/user.type";
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-const ACCESS_TOKEN_SECRET =
-  process.env.ACCESS_TOKEN_SECRET || "your-secret-key";
-const REFRESH_TOKEN_SECRET =
-  process.env.REFRESH_TOKEN_SECRET || "your-refresh-secret";
+const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET as string;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET as string;
 
-const EXPIRES_ACCESS_TOKEN = process.env.EXPRIRES_ACCESS_TOKEN || "1h";
-const EXPIRES_REFRESH_TOKEN = process.env.EXPRIRES_REFRESH_TOKEN || "7d";
+const EXPIRES_ACCESS_TOKEN = (process.env.EXPIRES_ACCESS_TOKEN ||
+  "1h") as string;
+const EXPIRES_REFRESH_TOKEN = (process.env.EXPIRES_REFRESH_TOKEN ||
+  "7d") as string;
 const REFRESH_MAX_AGE = 7 * 24 * 60 * 60;
 
 function serializeCookie(
@@ -86,20 +86,21 @@ export default async function handler(
       .status(403)
       .json(errorResponse("Thông tin đăng nhập không hợp lệ", 403));
 
-  const paload: IUser = {
+  const payload: IUser = {
     userId: user._id.toString(),
     username: user.username,
     displayName: user.displayName,
     role: user.role,
   };
 
-  const accessToken = jwt.sign(paload, ACCESS_TOKEN_SECRET, {
+  // ⭐ Explicit type for options
+  const accessToken = jwt.sign(payload, ACCESS_TOKEN_SECRET, {
     expiresIn: EXPIRES_ACCESS_TOKEN,
-  });
+  } as jwt.SignOptions);
 
-  const refreshToken = jwt.sign(paload, REFRESH_TOKEN_SECRET, {
+  const refreshToken = jwt.sign(payload, REFRESH_TOKEN_SECRET, {
     expiresIn: EXPIRES_REFRESH_TOKEN,
-  });
+  } as jwt.SignOptions);
 
   try {
     user.refreshToken = refreshToken;
