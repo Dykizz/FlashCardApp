@@ -1,36 +1,128 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FlashCard App 📚
 
-## Getting Started
+Một ứng dụng flash card hiện đại được xây dựng bằng Next.js, giúp bạn ôn tập lý thuyết một cách hiệu quả và thú vị. Ứng dụng hỗ trợ theo dõi tiến độ học tập, giao diện thân thiện với dark mode, và sẽ được mở rộng thêm nhiều chức năng trong tương lai.
 
-First, run the development server:
+## ✨ Tính năng chính
+
+- **Ôn tập flash card**: Hiển thị câu hỏi và đáp án theo dạng flash card truyền thống
+- **Theo dõi tiến độ**: Lưu trữ và theo dõi tiến độ học tập của từng bộ flash card
+- **Hệ thống tài khoản**: Đăng nhập/đăng ký để lưu trữ dữ liệu cá nhân
+- **Dark mode**: Chuyển đổi giữa chế độ sáng/tối
+- **Responsive design**: Hoạt động tốt trên mọi thiết bị
+- **Giao diện thân thiện**: Sử dụng shadcn/ui components cho trải nghiệm mượt mà
+
+## 🚀 Công nghệ sử dụng
+
+- **Frontend**: Next.js 14 (App Router), React 18, TypeScript
+- **Styling**: Tailwind CSS, shadcn/ui
+- **State Management**: React Query (TanStack Query)
+- **Authentication**: JWT tokens
+- **Database**: MongoDB với Mongoose
+- **Caching**: Upstash Redis
+- **Deployment**: Vercel
+- **Icons**: Lucide React
+
+## 📋 Yêu cầu hệ thống
+
+- Node.js 18+
+- npm hoặc yarn
+- MongoDB Atlas account
+- Upstash Redis account (optional)
+
+## 🛠️ Cài đặt và chạy
+
+### 1. Clone repository
+
+```bash
+git clone https://github.com/your-username/flash-card-app.git
+cd flash-card-app
+```
+
+### 2. Cài đặt dependencies
+
+```bash
+npm install
+```
+
+### 3. Cấu hình environment variables
+
+Tạo file `.env.local` trong thư mục gốc:
+
+```env
+# Database
+MONGODB_URI=mongodb+srv://your-connection-string
+
+# Authentication
+ACCESS_TOKEN_SECRET=your-access-token-secret
+REFRESH_TOKEN_SECRET=your-refresh-token-secret
+EXPIRES_ACCESS_TOKEN=1h
+EXPIRES_REFRESH_TOKEN=7d
+
+# Redis (optional)
+UPSTASH_REDIS_REST_URL=https://your-redis-url
+UPSTASH_REDIS_REST_TOKEN=your-redis-token
+```
+
+### 4. Chạy development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mở [http://localhost:3000](http://localhost:3000) để xem ứng dụng.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Cấu trúc dự án
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+flash-card-app/
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── api/            # API routes
+│   │   ├── flashcards/     # Flash card pages
+│   │   ├── login/          # Login page
+│   │   └── register/       # Register page
+│   ├── components/         # Reusable components
+│   │   ├── ui/            # shadcn/ui components
+│   │   ├── FlashCard.tsx  # Flash card component
+│   │   ├── Header.tsx     # Header component
+│   │   └── ThemeToggle.tsx # Theme toggle
+│   ├── hooks/             # Custom hooks
+│   ├── lib/               # Utilities
+│   ├── models/            # MongoDB models
+│   ├── types/             # TypeScript types
+│   └── utils/             # Helper functions
+├── public/                # Static assets
+└── README.md
+```
 
-## Learn More
+## 🚀 Deploy lên Vercel
 
-To learn more about Next.js, take a look at the following resources:
+### Tự động deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Push code lên GitHub
+2. Import project vào Vercel từ [vercel.com/new](https://vercel.com/new)
+3. Thêm environment variables trong Vercel dashboard
+4. Deploy!
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Manual deploy
 
-## Deploy on Vercel
+```bash
+# Cài đặt Vercel CLI
+npm i -g vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# Login
+vercel login
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Deploy
+vercel --prod
+```
+
+## 🎯 Cách sử dụng
+
+1. **Đăng ký tài khoản** hoặc đăng nhập nếu đã có
+2. **Chọn bộ flash card** từ thư viện
+3. **Ôn tập**: Đọc câu hỏi, suy nghĩ đáp án, click để xem đáp án
+4. **Theo dõi tiến độ**: Ứng dụng tự động lưu tiến độ học tập
+5. **Lặp lại**: Ôn tập lại những câu trả lời sai
+
+**Học tập hiệu quả với FlashCard App! 🎓✨**

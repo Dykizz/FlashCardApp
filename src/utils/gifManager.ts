@@ -5,6 +5,9 @@ const CORRECT_GIFS = [
   "https://gifer.com/embed/fxSL", // https://i.gifer.com/fxSL.gif - Champion
   "https://gifer.com/embed/i9", // https://i.gifer.com/i9.gif - Victory
   "https://gifer.com/embed/Bt4", // https://i.gifer.com/Bt4.gif - Success
+  "https://gifer.com/embed/NHBl",
+  "https://gifer.com/embed/v5T",
+  "https://gifer.com/embed/4HRI",
 ];
 
 const INCORRECT_GIFS = [
@@ -13,6 +16,8 @@ const INCORRECT_GIFS = [
   "https://gifer.com/embed/Elga", // https://i.gifer.com/Elga.gif - Oops
   "https://gifer.com/embed/xC5", // https://i.gifer.com/xC5.gif - Try again
   "https://gifer.com/embed/2yOW", // https://i.gifer.com/2yOW.gif - Oh no
+  "https://gifer.com/embed/15D7",
+  "https://gifer.com/embed/2Ao",
 ];
 
 export class GifManager {
