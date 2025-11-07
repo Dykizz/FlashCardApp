@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import { FlashCardSchema } from "@/models/FlashCard";
 import { successResponse, errorResponse } from "@/lib/response";
-import { withAuth } from "@/lib/withAuth";
+import { NextApiRequestWithUser, withAuth } from "@/lib/withAuth";
 import { FlashCardBase } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
@@ -16,7 +16,7 @@ const FlashCardProgressModel =
   mongoose.models.FlashCardProgress ||
   mongoose.model("FlashCardProgress", FlashCardProgressSchema);
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
   await dbConnect();
 
   const identifier = req.user?.userId || "anonymous";
@@ -60,14 +60,19 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
       countMap.set(item._id.toString(), item.count);
     });
 
-    const flashCardBase: FlashCardBase[] = flashcards.map((card) => ({
-      _id: card._id.toString(),
-      title: card.title,
-      description: card.description,
-      totalQuestion: card.questionIds.length,
-      subject: card.subject,
-      peopleLearned: countMap.get(card._id.toString()) || 0, // ⭐ Real count or 0
-    }));
+    const flashCardBase: FlashCardBase[] = flashcards.map((card: any) => {
+      const idStr = String(card._id);
+      return {
+        _id: idStr,
+        title: card.title,
+        description: card.description,
+        totalQuestion: Array.isArray(card.questionIds)
+          ? card.questionIds.length
+          : 0,
+        subject: card.subject,
+        peopleLearned: countMap.get(idStr) || 0,
+      };
+    });
 
     return res.status(200).json(successResponse(flashCardBase));
   } catch (err: any) {

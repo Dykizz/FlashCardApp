@@ -1,23 +1,17 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiResponse } from "next";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import { FlashCard, FlashCardSchema } from "@/models/FlashCard";
-import { Question, QuestionSchema } from "@/models/Question";
+import { Question } from "@/models/Question";
 import { successResponse, errorResponse } from "@/lib/response";
-import { withAuth } from "@/lib/withAuth";
+import { NextApiRequestWithUser, withAuth } from "@/lib/withAuth";
 import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
-import {
-  FlashCardProgress,
-  FlashCardProgressSchema,
-} from "@/models/FlashCardProgress";
 
 const FlashCardModel =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
-const QuestionModel =
-  mongoose.models.Question || mongoose.model("Question", QuestionSchema);
 
-async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
   await dbConnect();
 
   const identifier = req.user?.userId || "anonymous";
