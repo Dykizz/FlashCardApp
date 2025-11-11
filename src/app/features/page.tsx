@@ -117,10 +117,8 @@ export default function FeaturePage() {
   };
 
   const removeDependency = (index: number) => {
-    if (dependencies.length > 1) {
-      setIsSolved(false);
-      setDependencies(dependencies.filter((_, i) => i !== index));
-    }
+    setIsSolved(false);
+    setDependencies(dependencies.filter((_, i) => i !== index));
   };
 
   const updateDependency = (
@@ -146,19 +144,23 @@ export default function FeaturePage() {
   const handleSolve = async () => {
     setIsCalculating(true);
     try {
+      const regex = /^[a-zA-Z0-9]+$/;
+      dependencies.forEach((dep, index) => {
+        if (!regex.test(dep.left) || !regex.test(dep.right)) {
+          throw new Error(
+            `Phụ thuộc hàm thứ ${
+              index + 1
+            } có định dạng không hợp lệ. Chỉ chấp nhận các thuộc tính a-z, A-Z, 0-9.`
+          );
+        }
+      });
       const fds: FunctionalDependency[] = dependencies.map((dep) =>
         createFD(dep.left, dep.right)
       );
 
       const validation = validateInput(problemType, fds, attrsToClose);
       if (!validation.valid) {
-        showToast({
-          title: "Lỗi đầu vào",
-          description: validation.error || "Đầu vào không hợp lệ",
-          type: "error",
-        });
-        setIsCalculating(false);
-        return;
+        throw new Error(validation.error);
       }
       setCheck((pre) => !pre);
 
@@ -172,6 +174,11 @@ export default function FeaturePage() {
         result = data.solution;
         calculatedSteps = data.steps;
       } else if (problemType === ProblemType.Closure) {
+        if (!regex.test(attrsToClose)) {
+          throw new Error(
+            `Thuộc tính cần tìm bao đóng có định dạng không hợp lệ. Chỉ chấp nhận các thuộc tính a-z, A-Z, 0-9 và viết liền.`
+          );
+        }
         result = findClousure(attrsToClose, fds);
       }
       setTimeout(() => {
@@ -184,12 +191,17 @@ export default function FeaturePage() {
 
         if (solutionRef.current) {
           const element = solutionRef.current;
-          const y = element.getBoundingClientRect().top + window.pageYOffset; // ⭐ Lướt cao thêm 100px
+          const y = element.getBoundingClientRect().top + window.pageYOffset;
           window.scrollTo({ top: y, behavior: "smooth" });
         }
       }, 2000);
     } catch (error) {
-      console.error("Error during calculation:", error);
+      showToast({
+        title: "Lỗi",
+        description:
+          error instanceof Error ? error.message : "Đã có lỗi xảy ra",
+        type: "error",
+      });
       setSolution("Đã có lỗi xảy ra trong quá trình tính toán.");
       setIsSolved(false);
       setIsCalculating(false);
@@ -266,7 +278,7 @@ export default function FeaturePage() {
                     </Badge>
                     <div className="flex-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                       <Input
-                        placeholder="A, B, C"
+                        placeholder="ABC"
                         value={dep.left}
                         onChange={(e) =>
                           updateDependency(index, "left", e.target.value)
@@ -275,7 +287,7 @@ export default function FeaturePage() {
                       />
                       <span className="text-lg font-bold">→</span>
                       <Input
-                        placeholder="D, E"
+                        placeholder="DE"
                         value={dep.right}
                         onChange={(e) =>
                           updateDependency(index, "right", e.target.value)
@@ -286,9 +298,8 @@ export default function FeaturePage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:bg-red-600 hover:text-white"
                       onClick={() => removeDependency(index)}
-                      disabled={dependencies.length === 1}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -326,7 +337,7 @@ export default function FeaturePage() {
               />
               <Button
                 variant="outline"
-                className="cursor-pointer"
+                className="cursor-pointer hover:bg-red-600 hover:text-white"
                 onClick={clearAll}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -394,14 +405,19 @@ export default function FeaturePage() {
                   <li>Vế phải: Nhập các thuộc tính (VD: B, CD)</li>
                   <li>Không cần nhập ký hiệu →</li>
                   <li>Có thể nhập nhiều thuộc tính liền nhau</li>
+                  <li className="text-red-500 dark:text-red-300">
+                    <strong>Lưu ý:</strong> Chỉ chấp nhận các thuộc tính a-z,
+                    A-Z, 0-9 và viết liền. Hệ thống sẽ phân biệt viết hoa và
+                    thường
+                  </li>
                 </ul>
               </div>
             </CardContent>
           </Card>
 
           <Card ref={solutionRef} className="xl:col-span-2 xl:row-span-2">
-            <CardHeader>
-              <CardTitle>Lời giải</CardTitle>
+            <CardHeader className="p-5 pb-1">
+              <CardTitle className="text-base md:text-xl ">Lời giải</CardTitle>
               <CardDescription>
                 Các bước tìm phủ tối tiểu của tập phụ thuộc hàm
               </CardDescription>
