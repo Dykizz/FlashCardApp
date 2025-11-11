@@ -132,11 +132,14 @@ export function Header() {
                       <Home className="mr-2 h-4 w-4" />
                       <span>Thẻ học của tôi</span>
                     </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
                     <Link href="/features">
                       <Calculator className="mr-2 h-4 w-4" />
                       <span>Tính toán</span>
                     </Link>
                   </DropdownMenuItem>
+
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
