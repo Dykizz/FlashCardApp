@@ -14,8 +14,13 @@ const nextConfig = {
             deadCodeInjection: true,
             deadCodeInjectionThreshold: 0.4,
             identifierNamesGenerator: "hexadecimal",
+            unicodeEscapeSequence: false,
           },
-          ["feature.ts"]
+          [
+            "feature.ts", // Obfuscate file này
+            "node_modules/**",
+            "**/*.tsx",
+          ]
         )
       );
     }

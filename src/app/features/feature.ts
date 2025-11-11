@@ -298,12 +298,6 @@ export function removeRedundantFDs(fds: FunctionalDependency[]): {
   return { fds: result, steps };
 }
 
-export function toLaTeXFD(fd: FunctionalDependency): string {
-  const lhs = [...fd.lhs].join("");
-  const rhs = [...fd.rhs].join("");
-  return `$${lhs} \\to ${rhs}$`;
-}
-
 export function toLatexClosure(
   attrs: Set<Attribute>,
   closure: Set<Attribute>
@@ -594,11 +588,11 @@ export function findCandidateKeys(fds: FunctionalDependency[]): {
     )}\\}$ `;
 
     if (step.isKey) {
-      solution += `→ Chứa tất cả các thuộc tính nên $\\{${[...step.attrs].join(
-        ""
-      )}\\}$ là \\textbf{khóa chính}.\n`;
+      solution += `$\\to$ Chứa tất cả các thuộc tính nên $\\{${[
+        ...step.attrs,
+      ].join("")}\\}$ là \\textbf{khóa chính}.\n`;
     } else {
-      solution += `→ Không chứa tất cả các thuộc tính nên $\\{${[
+      solution += `$\\to$ Không chứa tất cả các thuộc tính nên $\\{${[
         ...step.attrs,
       ].join("")}\\}$ \\textbf{không phải} khóa chính.\n`;
     }
