@@ -8,7 +8,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
 import { FlashCardSchema } from "@/models/FlashCard";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
-import { QuestionSchema } from "@/models/Question"; // ⭐ Import QuestionSchema
+import { QuestionSchema } from "@/models/Question";
 
 interface FlashCardDocument {
   _id: mongoose.Types.ObjectId;

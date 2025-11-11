@@ -30,96 +30,106 @@ const KatexContentRender: React.FC<KatexContentRenderProps> = ({
     }
 
     const renderContent = async (text: string) => {
-      // Step 1: Extract math expressions and replace with placeholders
       const mathExpressions: Array<{
         type: "display" | "inline";
         content: string;
       }> = [];
       let processedText = text;
 
-      // Extract display math $$...$$
+      // Extract math expressions
       processedText = processedText.replace(
         /\$\$([\s\S]+?)\$\$/g,
         (match, math) => {
           const index = mathExpressions.length;
-          mathExpressions.push({ type: "display", content: math });
-          return `__MATH_DISPLAY_${index}__`;
+          mathExpressions.push({ type: "display", content: math.trim() });
+          return `%%%MATH_DISPLAY_${index}%%%`; // ⭐ Dùng %%% thay vì __
         }
       );
 
-      // Extract inline math \(...\)
-      processedText = processedText.replace(
-        /\\\(([\s\S]+?)\\\)/g,
-        (match, math) => {
-          const index = mathExpressions.length;
-          mathExpressions.push({ type: "inline", content: math });
-          return `__MATH_INLINE_${index}__`;
-        }
-      );
-
-      // Extract inline math $...$
-      processedText = processedText.replace(
-        /\$([^\s$][^$]*?)\$/g,
-        (match, math) => {
-          const isMathContent = (content: string): boolean => {
-            const mathChars = /[\\^_{}[\]]/;
-            const mathCommands =
-              /\\(frac|sqrt|sum|int|lim|infty|alpha|beta|gamma|theta|pi|sin|cos|tan|log|exp|cdot|times|div|pm|leq|geq|neq|approx|equiv)/;
-            return mathChars.test(content) || mathCommands.test(content);
-          };
-
-          if (
-            isMathContent(math) &&
-            math.length < 200 &&
-            !math.includes("<br/>") &&
-            !/\s{3,}/.test(math)
-          ) {
-            const index = mathExpressions.length;
-            mathExpressions.push({ type: "inline", content: math });
-            return `__MATH_INLINE_${index}__`;
-          }
-          return match; // Keep as text if not math
-        }
-      );
-
-      // Extract display math \[...\]
       processedText = processedText.replace(
         /\\\[([\s\S]+?)\\\]/g,
         (match, math) => {
           const index = mathExpressions.length;
-          mathExpressions.push({ type: "display", content: math });
-          return `__MATH_DISPLAY_${index}__`;
+          mathExpressions.push({ type: "display", content: math.trim() });
+          return `%%%MATH_DISPLAY_${index}%%%`;
         }
       );
 
-      // Step 2: Parse markdown
+      processedText = processedText.replace(
+        /\\\(([\s\S]+?)\\\)/g,
+        (match, math) => {
+          const index = mathExpressions.length;
+          mathExpressions.push({ type: "inline", content: math.trim() });
+          return `%%%MATH_INLINE_${index}%%%`;
+        }
+      );
+
+      processedText = processedText.replace(
+        /\$([^\s$][^$]*?[^\s$]|\S)\$/g,
+        (match, math) => {
+          const isMathContent = (content: string): boolean => {
+            const mathChars = /[\\^_{}[\]]/;
+            const mathCommands =
+              /\\(frac|sqrt|sum|int|lim|infty|alpha|beta|gamma|delta|theta|pi|sigma|omega|sin|cos|tan|log|exp|ln|cdot|times|div|pm|mp|leq|geq|neq|equiv|approx|subset|subseteq|in|notin|cup|cap|emptyset|forall|exists|neg|wedge|vee|rightarrow|Rightarrow|leftarrow|Leftarrow|leftrightarrow|Leftrightarrow|to)/;
+            const greekLetters =
+              /\\(Alpha|Beta|Gamma|Delta|Epsilon|Zeta|Eta|Theta|Iota|Kappa|Lambda|Mu|Nu|Xi|Omicron|Pi|Rho|Sigma|Tau|Upsilon|Phi|Chi|Psi|Omega)/;
+
+            return (
+              mathChars.test(content) ||
+              mathCommands.test(content) ||
+              greekLetters.test(content)
+            );
+          };
+
+          if (
+            isMathContent(math) &&
+            math.length < 500 &&
+            !math.includes("<br/>") &&
+            !/\s{3,}/.test(math)
+          ) {
+            const index = mathExpressions.length;
+            mathExpressions.push({ type: "inline", content: math.trim() });
+            return `%%%MATH_INLINE_${index}%%%`;
+          }
+          return match;
+        }
+      );
+
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+      });
+
       let htmlContent = await marked.parse(processedText);
 
-      // Step 3: Sanitize HTML
-      htmlContent = DOMPurify.sanitize(htmlContent);
-
-      // Step 4: Restore math expressions
+      // ⭐ Replace trong HTML (kể cả khi bị wrap trong tags)
       mathExpressions.forEach((math, index) => {
         const placeholder =
           math.type === "display"
-            ? `__MATH_DISPLAY_${index}__`
-            : `__MATH_INLINE_${index}__`;
+            ? `%%%MATH_DISPLAY_${index}%%%`
+            : `%%%MATH_INLINE_${index}%%%`;
 
-        htmlContent = htmlContent.replace(
-          new RegExp(placeholder, "g"),
-          `<span class="math-${math.type}" data-math="${encodeURIComponent(
-            math.content
-          )}"></span>`
-        );
+        // ⭐ Use simple string replace (no regex needed with %%%)
+        const spanTag = `<span class="math-${
+          math.type
+        }" data-math="${encodeURIComponent(math.content)}"></span>`;
+
+        // ⭐ Replace all occurrences globally
+        htmlContent = htmlContent.split(placeholder).join(spanTag);
       });
 
-      // Step 5: Insert HTML into container
+      htmlContent = DOMPurify.sanitize(htmlContent, {
+        ADD_TAGS: ["span"],
+        ADD_ATTR: ["class", "data-math"],
+      });
+
       container.innerHTML = htmlContent;
 
-      // Step 6: Render math with KaTeX
+      // Render math với KaTeX
       const mathElements = container.querySelectorAll(
         ".math-display, .math-inline"
       );
+
       mathElements.forEach((el) => {
         const mathContent = decodeURIComponent(
           el.getAttribute("data-math") || ""
@@ -132,13 +142,20 @@ const KatexContentRender: React.FC<KatexContentRenderProps> = ({
             throwOnError: false,
             output: "html",
             trust: true,
+            strict: false,
+            macros: {
+              "\\R": "\\mathbb{R}",
+              "\\N": "\\mathbb{N}",
+              "\\Z": "\\mathbb{Z}",
+              "\\Q": "\\mathbb{Q}",
+            },
           });
         } catch (error) {
-          console.error("KaTeX render error:", error);
+          console.error("KaTeX render error:", error, "Math:", mathContent);
           el.textContent = isDisplay
             ? `$$${mathContent}$$`
             : `$${mathContent}$`;
-          el.className += " text-red-500 font-mono text-sm";
+          (el as HTMLElement).className += " text-red-500 font-mono text-sm";
         }
       });
     };
@@ -149,9 +166,14 @@ const KatexContentRender: React.FC<KatexContentRenderProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`${
-        border ? "border p-2 rounded" : ""
-      } leading-relaxed prose prose-sm dark:prose-invert max-w-none ${className}`}
+      className={`${border ? "..." : ""} leading-relaxed max-w-none
+text-slate-900 dark:text-slate-100  
+[&_h2]:text-slate-900 dark:[&_h2]:text-slate-100
+[&_h3]:text-slate-900 dark:[&_h3]:text-slate-100
+[&_p]:text-slate-900 dark:[&_p]:text-slate-100  
+[&_strong]:text-slate-900 dark:[&_strong]:text-slate-100
+[&_li]:text-slate-900 dark:[&_li]:text-slate-100 
+${className}`}
     />
   );
 };

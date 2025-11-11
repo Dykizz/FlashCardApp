@@ -64,6 +64,21 @@ export function Header() {
           <span className="sm:hidden">Flashcard</span>
         </Link>
 
+        <div>
+          <Link
+            href="/flashcards"
+            className="hidden md:inline-block text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+          >
+            Thẻ học
+          </Link>
+          <Link
+            href="/features"
+            className="hidden md:inline-block ml-6 text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+          >
+            Tính năng
+          </Link>
+        </div>
+
         {/* User Menu */}
         <div className="flex items-center space-x-4">
           <ThemeToggle />

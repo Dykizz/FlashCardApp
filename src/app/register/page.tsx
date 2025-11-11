@@ -97,7 +97,7 @@ export default function RegisterPage() {
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                placeholder="vd: user_01"
+                placeholder="vd: nguyenvana"
                 autoComplete="username"
                 {...register("username", {
                   required: "Vui lòng nhập username",
