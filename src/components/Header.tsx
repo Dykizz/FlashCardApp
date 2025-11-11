@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, BookOpen, Home, Menu } from "lucide-react";
+import { LogOut, User, BookOpen, Home, Menu, Calculator } from "lucide-react";
 import { useState } from "react";
 import { showToast } from "@/utils/toast";
 import { useUser } from "@/hooks/useUser";
@@ -75,7 +75,7 @@ export function Header() {
             href="/features"
             className="hidden md:inline-block ml-6 text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
           >
-            Tính năng
+            Tính toán
           </Link>
         </div>
 
@@ -131,6 +131,10 @@ export function Header() {
                     <Link href="/flashcards" className="flex items-center">
                       <Home className="mr-2 h-4 w-4" />
                       <span>Thẻ học của tôi</span>
+                    </Link>
+                    <Link href="/features">
+                      <Calculator className="mr-2 h-4 w-4" />
+                      <span>Tính toán</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
