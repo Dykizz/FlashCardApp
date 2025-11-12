@@ -33,14 +33,8 @@ export function usePriorityQueue(
   const mergedProgress = useMemo(() => {
     const map = new Map(localProgress);
 
-    if (map.size === 0 && progressItems && progressItems.length > 0) {
-      progressItems.forEach((p) => {
-        map.set(p.questionId, p.weight);
-      });
-    }
-
     return map;
-  }, [localProgress, progressItems]);
+  }, [localProgress]);
 
   // ⭐ Build priority queue
   const priorityQueue = useMemo(() => {
