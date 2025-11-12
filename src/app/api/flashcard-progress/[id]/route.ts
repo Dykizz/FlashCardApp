@@ -17,7 +17,7 @@ const FlashCardProgressModel =
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getServerSession(authOptions);
 
@@ -39,7 +39,7 @@ export async function GET(
     );
   }
 
-  const { id } = params;
+  const { id } = await params;
   if (!id || typeof id !== "string") {
     return NextResponse.json(errorResponse("ID không hợp lệ", 400), {
       status: 400,
