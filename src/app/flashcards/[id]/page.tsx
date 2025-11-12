@@ -81,7 +81,7 @@ export default function FlashCardDetailPage() {
     reset,
     stats,
     questionNumber,
-  } = usePriorityQueue(flashcard?.questions || [], [], isInfiniteLoop);
+  } = usePriorityQueue(flashcard?.questions || [], isInfiniteLoop);
 
   useEffect(() => {
     if (error) {

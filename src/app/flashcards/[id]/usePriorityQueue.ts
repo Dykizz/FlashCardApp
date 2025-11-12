@@ -1,6 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { Question } from "@/types/question.type";
-import { ProgressItem } from "@/types/flashCard.type";
 
 function hashCode(str: string): number {
   let hash = 0;
@@ -14,17 +13,11 @@ function hashCode(str: string): number {
 
 export function usePriorityQueue(
   questions: Question[],
-  progressItems: ProgressItem[],
   isInfiniteLoop: boolean
 ) {
   const [localProgress, setLocalProgress] = useState<Map<string, number>>(
     () => {
       const map = new Map<string, number>();
-      if (progressItems && progressItems.length > 0) {
-        progressItems.forEach((p) => {
-          map.set(p.questionId, p.weight);
-        });
-      }
       return map;
     }
   );
