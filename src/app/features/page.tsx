@@ -32,13 +32,7 @@ import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
 import { NotLogin } from "@/components/NotLogin";
 import { useMapping } from "./useMapping";
-
-export enum ProblemType {
-  MinimalCover = "minimal-cover",
-  CandidateKeys = "candidate-keys",
-  Closure = "closure",
-  Equivalence = "equivalence",
-}
+import { ProblemType } from "@/types/enum";
 
 const SolveButton = ({
   handleSolve,

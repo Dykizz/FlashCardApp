@@ -1,5 +1,5 @@
+import { ProblemType } from "@/types/enum";
 import { FunctionalDependency, getAllAttributes } from "./feature";
-import { ProblemType } from "./page";
 
 export function validateInput(
   problemType: string,
