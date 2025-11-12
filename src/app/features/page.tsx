@@ -417,11 +417,11 @@ export default function FeaturePage() {
                       )
                     )}
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
                       <Button
                         variant="outline"
                         onClick={addMapping}
-                        className="flex-1 cursor-pointer"
+                        className=" cursor-pointer"
                       >
                         <Plus className="h-4 w-4 mr-1" />
                         Thêm mapping
@@ -430,7 +430,7 @@ export default function FeaturePage() {
                         onClick={reset}
                         disabled={Object.keys(attributeMapping).length === 0}
                         variant="outline"
-                        className="flex-1 cursor-pointer hover:bg-red-600 hover:text-white"
+                        className="cursor-pointer hover:bg-red-600 hover:text-white"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Xóa tất cả
