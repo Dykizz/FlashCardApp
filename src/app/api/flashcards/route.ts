@@ -8,7 +8,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 
 const FlashCard =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);

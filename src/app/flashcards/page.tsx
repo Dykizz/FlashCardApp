@@ -1,7 +1,8 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+
 import FlashCards from "../FlashCards";
 import { NotLogin } from "@/components/NotLogin";
+import { authOptions } from "@/lib/auth";
 
 export default async function FlashcardsPage() {
   const session = await getServerSession(authOptions);
