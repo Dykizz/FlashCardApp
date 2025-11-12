@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,31 +10,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, BookOpen, Home, Menu, Calculator } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, BookOpen, Home, Menu, Calculator } from "lucide-react";
 import { useState } from "react";
-import { showToast } from "@/utils/toast";
-import { useUser } from "@/hooks/useUser";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Header() {
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const { user, isLoading, logout } = useUser();
+  const { data: session, status } = useSession();
+  const user = session?.user;
 
   const handleLogout = () => {
-    logout();
-
-    showToast({
-      title: "Đăng xuất",
-      description: "Đã đăng xuất thành công",
-      type: "success",
-    });
-
-    router.push("/login");
+    signOut({ callbackUrl: "/login" });
   };
 
-  if (isLoading) {
+  if (status === "loading") {
     return (
       <header className="sticky top-0 z-40 w-full border-b bg-white/95 dark:bg-slate-950/95 backdrop-blur">
         <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -51,7 +42,9 @@ export function Header() {
     );
   }
 
-  const displayName = user?.displayName;
+  const displayName = user?.name;
+  const userImage = user?.image;
+
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-white/95 dark:bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-backdrop-filter:bg-slate-950/60">
       <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -82,28 +75,44 @@ export function Header() {
         {/* User Menu */}
         <div className="flex items-center space-x-4">
           <ThemeToggle />
-          {displayName ? (
+          {user ? (
             <>
               {/* Desktop User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="hidden md:flex items-center space-x-2"
+                    className="hidden md:flex items-center space-x-2 cursor-pointer border py-2"
                   >
-                    <User className="h-4 w-4" />
+                    <Avatar className="size-6 md:size-8">
+                      <AvatarImage
+                        src={userImage || ""}
+                        alt={displayName || "User"}
+                      />
+                      <AvatarFallback>
+                        {displayName?.charAt(0)?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span>{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem disabled>
-                    <User className="mr-2 h-4 w-4" />
+                    <Avatar className="mr-2 h-4 w-4">
+                      <AvatarImage
+                        src={userImage || ""}
+                        alt={displayName || "User"}
+                      />
+                      <AvatarFallback>
+                        {displayName?.charAt(0)?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span>{displayName}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="text-red-600"
+                    className="text-red-600 cursor-pointer hover:bg-red-400"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Đăng xuất</span>
@@ -117,23 +126,35 @@ export function Header() {
                 onOpenChange={setMobileMenuOpen}
               >
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="md:hidden">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden cursor-pointer"
+                  >
                     <Menu className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem disabled>
-                    <User className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem disabled className="cursor-pointer">
+                    <Avatar className="mr-2 h-4 w-4">
+                      <AvatarImage
+                        src={userImage || ""}
+                        alt={displayName || "User"}
+                      />
+                      <AvatarFallback>
+                        {displayName?.charAt(0)?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span>{displayName}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="cursor-pointer">
                     <Link href="/flashcards" className="flex items-center">
                       <Home className="mr-2 h-4 w-4" />
                       <span>Thẻ học của tôi</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="cursor-pointer">
                     <Link href="/features">
                       <Calculator className="mr-2 h-4 w-4" />
                       <span>Tính toán</span>
@@ -143,7 +164,7 @@ export function Header() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="text-red-600"
+                    className="text-red-600 cursor-pointer hover:bg-red-400"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Đăng xuất</span>
@@ -152,14 +173,9 @@ export function Header() {
               </DropdownMenu>
             </>
           ) : (
-            <div className="flex items-center space-x-2">
-              <Button variant="ghost" asChild>
-                <Link href="/login">Đăng nhập</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/register">Đăng ký</Link>
-              </Button>
-            </div>
+            <Button className="cursor-pointer" variant="ghost" asChild>
+              <Link href="/login">Đăng nhập</Link>
+            </Button>
           )}
         </div>
       </div>

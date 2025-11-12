@@ -1,13 +1,14 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
 import { FlashCardSchema } from "@/models/FlashCard";
 import { successResponse, errorResponse } from "@/lib/response";
-import { NextApiRequestWithUser, withAuth } from "@/lib/withAuth";
 import { FlashCardBase } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const FlashCard =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
@@ -16,25 +17,25 @@ const FlashCardProgressModel =
   mongoose.models.FlashCardProgress ||
   mongoose.model("FlashCardProgress", FlashCardProgressSchema);
 
-async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
-  await dbConnect();
+export async function GET(req: NextRequest) {
+  const session = await getServerSession(authOptions);
 
-  const identifier = req.user?.userId || "anonymous";
+  if (!session || !session.user) {
+    return NextResponse.json(errorResponse("Vui lòng đăng nhập", 401), {
+      status: 401,
+    });
+  }
+
+  await dbConnect();
+  const identifier = session.user.email;
 
   const { success, headers } = await checkRateLimit(identifier, "api");
 
-  Object.entries(headers).forEach(([key, value]) => {
-    res.setHeader(key, value);
-  });
-
   if (!success) {
-    return res
-      .status(429)
-      .json(errorResponse("Quá nhiều yêu cầu. Vui lòng thử lại sau.", 429));
-  }
-
-  if (req.method !== "GET") {
-    return res.status(405).json(errorResponse("Method not allowed", 405));
+    return NextResponse.json(
+      errorResponse("Quá nhiều yêu cầu. Vui lòng thử lại sau.", 429),
+      { status: 429, headers: Object.fromEntries(Object.entries(headers)) }
+    );
   }
 
   try {
@@ -74,13 +75,14 @@ async function handler(req: NextApiRequestWithUser, res: NextApiResponse) {
       };
     });
 
-    return res.status(200).json(successResponse(flashCardBase));
+    return NextResponse.json(successResponse(flashCardBase), {
+      status: 200,
+      headers: Object.fromEntries(Object.entries(headers)),
+    });
   } catch (err: any) {
     console.error("Error fetching flashcards:", err);
-    return res
-      .status(500)
-      .json(errorResponse("Failed to fetch flashcards", 500));
+    return NextResponse.json(errorResponse("Failed to fetch flashcards", 500), {
+      status: 500,
+    });
   }
 }
-
-export default withAuth(handler);

@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
-import { fetchWithAuth } from "@/utils/apiClient";
+import { get } from "@/utils/apiClient";
 import { showToast } from "@/utils/toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -22,6 +22,8 @@ import { FlashCardDetail, FlashCardProgress } from "@/types/flashCard.type";
 import { usePriorityQueue } from "./usePriorityQueue";
 import { GifDisplay } from "@/components/GifsDisplay";
 import NotFoundFlashCard from "./NotFoundFlashCard";
+import { useSession } from "next-auth/react";
+import { NotLogin } from "@/components/NotLogin";
 
 type FeedbackState = "idle" | "correct" | "incorrect";
 
@@ -29,10 +31,11 @@ async function fetchFlashcard(id: string): Promise<{
   flashcard: FlashCardDetail;
   progress: FlashCardProgress;
 }> {
-  const res = await fetchWithAuth<{
+  const res = await get<{
     flashcard: FlashCardDetail;
     progress: FlashCardProgress;
   }>(`/api/flashcards/${id}`);
+
   if (!res.success) {
     throw new Error(res.error?.message || "Không thể tải flashcard");
   }
@@ -42,6 +45,7 @@ async function fetchFlashcard(id: string): Promise<{
 export default function FlashCardDetailPage() {
   const params = useParams();
   const id = params?.id as string;
+  const { data: seesion } = useSession();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedbackState, setFeedbackState] = useState<FeedbackState>("idle");
   const [autoNext, setAutoNext] = useState(false);
@@ -56,6 +60,7 @@ export default function FlashCardDetailPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["flashcard", id],
     queryFn: async () => {
+      if (!seesion) return;
       const flashcardId = id as string;
       return await fetchFlashcard(flashcardId);
     },
@@ -68,7 +73,6 @@ export default function FlashCardDetailPage() {
   });
 
   const flashcard = data?.flashcard;
-  const progress = data?.progress;
 
   const {
     currentQuestion,
@@ -77,11 +81,7 @@ export default function FlashCardDetailPage() {
     reset,
     stats,
     questionNumber,
-  } = usePriorityQueue(
-    flashcard?.questions || [],
-    progress?.progress || [],
-    isInfiniteLoop
-  );
+  } = usePriorityQueue(flashcard?.questions || [], [], isInfiniteLoop);
 
   useEffect(() => {
     if (error) {
@@ -171,6 +171,8 @@ export default function FlashCardDetailPage() {
       </div>
     );
   }
+
+  if (!seesion) return <NotLogin />;
 
   if (error || !flashcard) {
     return <NotFoundFlashCard />;
@@ -276,7 +278,7 @@ export default function FlashCardDetailPage() {
                       Vô hạn
                     </label>
                   </div>
-                  <div className="2xl:block">
+                  <div className="hidden 2xl:block">
                     <div className="flex items-center space-x-2 ">
                       <Switch
                         id="on-gif"
@@ -293,7 +295,6 @@ export default function FlashCardDetailPage() {
                   </div>
                 </div>
 
-                {/* ⭐ Sticky button trên mobile, inline trên desktop */}
                 {feedbackState === "correct" && (
                   <Button
                     onClick={goToNextCard}
@@ -302,6 +303,7 @@ export default function FlashCardDetailPage() {
                       left-4 sm:left-auto
                       right-4 sm:right-auto
                       z-50
+                      rounded-xl
                       shadow-lg sm:shadow-none
                     "
                   >

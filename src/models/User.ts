@@ -1,44 +1,46 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, ObjectId } from "mongoose";
-
-export type UserDocument = User & Document;
+import { Schema, model, models, Document, ObjectId } from "mongoose";
 
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
 }
 
-@Schema({ timestamps: true })
-export class User {
-  _id!: string | ObjectId;
-
-  @Prop({ required: true })
-  displayName!: string;
-
-  @Prop({
-    required: true,
-    unique: true,
-    match: /^[a-z0-9_-]+$/,
-  })
-  username!: string;
-
-  @Prop({ required: true })
-  password!: string;
-
-  @Prop({
-    required: true,
-    enum: UserRole,
-    default: UserRole.USER,
-  })
-  role!: UserRole;
-
-  @Prop({ required: false })
-  refreshToken?: string;
-
-  createdAt!: Date;
-  updatedAt!: Date;
+export interface User {
+  _id: string | ObjectId;
+  email: string;
+  name: string;
+  image?: string;
+  password?: string;
+  provider: string;
+  role: UserRole;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const UserSchema = SchemaFactory.createForClass(User);
+export type UserDocument = User & Document;
 
-UserSchema.index({ username: 1 }, { unique: true });
+export const UserSchema = new Schema<User>(
+  {
+    email: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    image: { type: String },
+    password: { type: String },
+    provider: {
+      type: String,
+      required: true,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: Object.values(UserRole),
+      default: UserRole.USER,
+    },
+    lastLogin: { type: Date, default: Date.now },
+  },
+  { timestamps: true }
+);
+
+export const UserModel = models.User || model<User>("User", UserSchema);

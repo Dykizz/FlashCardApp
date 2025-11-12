@@ -1,4 +1,5 @@
 import { FunctionalDependency, getAllAttributes } from "./feature";
+import { ProblemType } from "./page";
 
 export function validateInput(
   problemType: string,
@@ -39,7 +40,7 @@ export function validateInput(
 
   // Specific validation for each problem type
   switch (problemType) {
-    case "minimal-cover":
+    case ProblemType.MinimalCover:
       // Minimal cover can handle more FDs
       if (fds.length > 25) {
         return {
@@ -49,7 +50,7 @@ export function validateInput(
       }
       break;
 
-    case "candidate-keys":
+    case ProblemType.CandidateKeys:
       // Candidate keys is most expensive - stricter limits
       if (attrs.size > 12) {
         return {
@@ -82,7 +83,7 @@ export function validateInput(
       }
       break;
 
-    case "closure":
+    case ProblemType.Closure:
       // Validate attrsToClose
       if (!attrsToClose || attrsToClose.trim() === "") {
         return {
@@ -114,6 +115,9 @@ export function validateInput(
           error: "Vui lòng nhập ít nhất một thuộc tính hợp lệ",
         };
       }
+      break;
+    case ProblemType.Equivalence:
+      // No specific validation for equivalence
       break;
 
     default:

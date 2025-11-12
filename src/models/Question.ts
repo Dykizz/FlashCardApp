@@ -1,27 +1,26 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import type { ObjectId } from "mongoose";
-import { Document, SchemaTypes } from "mongoose";
+import { Schema, model, models, Document, ObjectId } from "mongoose";
+
+export interface Question {
+  _id: string | ObjectId;
+  content: string;
+  explanation?: string;
+  options: string[];
+  correctAnswer: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type QuestionDocument = Question & Document;
 
-@Schema({ timestamps: true })
-export class Question {
-  _id!: string | ObjectId;
+export const QuestionSchema = new Schema<Question>(
+  {
+    content: { type: String, required: true },
+    explanation: { type: String, required: false },
+    options: { type: [String], required: true },
+    correctAnswer: { type: Number, required: true },
+  },
+  { timestamps: true }
+);
 
-  @Prop({ required: true })
-  content!: string;
-
-  @Prop({ required: false })
-  explanation?: string;
-
-  @Prop({ type: [String], required: true })
-  options!: string[];
-
-  @Prop({ required: true })
-  correctAnswer!: number;
-
-  createdAt!: Date;
-  updatedAt!: Date;
-}
-
-export const QuestionSchema = SchemaFactory.createForClass(Question);
+export const QuestionModel =
+  models.Question || model<Question>("Question", QuestionSchema);

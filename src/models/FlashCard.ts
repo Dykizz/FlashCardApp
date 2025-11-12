@@ -1,31 +1,30 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document, ObjectId, SchemaTypes } from "mongoose";
+import { Schema, model, models, Document, ObjectId } from "mongoose";
+
+export interface FlashCard {
+  _id: string | ObjectId;
+  title: string;
+  description: string;
+  questionIds: ObjectId[];
+  subject: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type FlashCardDocument = FlashCard & Document;
 
-@Schema({ timestamps: true })
-export class FlashCard {
-  _id!: string | ObjectId;
+export const FlashCardSchema = new Schema<FlashCard>(
+  {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    questionIds: {
+      type: [Schema.Types.ObjectId],
+      ref: "Question",
+      default: [],
+    },
+    subject: { type: String, required: true },
+  },
+  { timestamps: true }
+);
 
-  @Prop({ required: true })
-  title!: string;
-
-  @Prop({ required: true })
-  description!: string;
-
-  @Prop({
-    required: false,
-    type: [SchemaTypes.ObjectId],
-    ref: "Question",
-    default: [],
-  })
-  questionIds!: ObjectId[];
-
-  @Prop({ required: true })
-  subject!: string;
-
-  createdAt!: Date;
-  updatedAt!: Date;
-}
-
-export const FlashCardSchema = SchemaFactory.createForClass(FlashCard);
+export const FlashCardModel =
+  models.FlashCard || model<FlashCard>("FlashCard", FlashCardSchema);

@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { Header } from "@/components/Header";
 import { ThemeProvider } from "@/providers/ThemeProvider";
+import { SessionProvider } from "@/providers/SessionProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,12 +38,15 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <QueryProvider>
-            <Header />
-            <main className="min-h-screen">{children}</main>
-            <Toaster position="top-right" richColors />
-          </QueryProvider>
+          <SessionProvider>
+            <QueryProvider>
+              <Header />
+              <main className="min-h-screen">{children}</main>
+              <Toaster position="top-right" richColors />
+            </QueryProvider>
+          </SessionProvider>
         </ThemeProvider>
+
         <footer className="border-t bg-white/50 dark:bg-slate-950/50 backdrop-blur flex justify-center items-center p-5">
           <span>© 2025 Flash Card App. All rights reserved. (DCT123C1)</span>
         </footer>

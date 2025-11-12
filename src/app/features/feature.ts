@@ -643,3 +643,210 @@ export function convertToReactFlow(steps: Node[]): {
 
   return { nodes, edges };
 }
+
+//Xét tính phụ thuộc hàm tương đương
+export function areEquivalentFDs(
+  fds1: FunctionalDependency[],
+  fds2: FunctionalDependency[]
+): string {
+  // --- Các hàm helper để định dạng LaTeX ---
+
+  /** Biến Set thành chuỗi \{A, B, C\} (dùng bên trong math mode) */
+  const formatSet = (s: Set<string>): string => `\\{${[...s].join(", ")}\\}`;
+
+  /** Biến Set thành chuỗi AB (dùng bên trong math mode) */
+  const formatAttrs = (s: Set<string>): string => [...s].join("");
+
+  /** Biến Set thành chuỗi (AB)^+ (dùng bên trong math mode) */
+  const formatClosure = (s: Set<string>): string => `(${formatAttrs(s)})^+`;
+
+  /** Biến một FD thành chuỗi \( A \to B \) (math block hoàn chỉnh) */
+  const formatFD = (fd: FunctionalDependency): string =>
+    `\\( ${formatAttrs(fd.lhs)} \\to ${formatAttrs(fd.rhs)} \\)`;
+
+  // --- Logic chính ---
+
+  let f2CoversF1 = true; // Cờ cho F_1 \subseteq F_2^+
+  let f1CoversF2 = true; // Cờ cho F_2 \subseteq F_1^+
+
+  // Bọc F_1, F_2 trong math mode
+  let solution =
+    "\\section{Kiểm tra tính tương đương của \\( F_1 \\) và \\( F_2 \\)}\n\n";
+
+  // --- Bước 1: Kiểm tra F_1 \subseteq F_2^+ ---
+  // Bọc F_1 \subseteq F_2^+ trong math mode
+  solution += "\\subsection{Bước 1: Kiểm tra \\( F_1 \\subseteq F_2^+ \\)}\n";
+  solution +=
+    "Ta xét từng phụ thuộc hàm trong \\( F_1 \\) và tìm bao đóng của vế trái đối với \\( F_2 \\).\n";
+  solution += "\\begin{itemize}\n"; // Bắt đầu danh sách
+
+  for (const fd of fds1) {
+    const { closure: closure2 } = closure(fd.lhs, fds2);
+    const isSubset = [...fd.rhs].every((attr) => closure2.has(attr));
+
+    if (!isSubset) {
+      f2CoversF1 = false;
+    }
+
+    // LOẠI BỎ itemize lồng nhau. Dùng \\ (xuống dòng) thay thế.
+    solution += `  \\item Xét ${formatFD(fd)}: \\\\ \n`;
+
+    // Bọc tất cả math snippets trong \( ... \)
+    solution += `  Tìm \\( ${formatClosure(
+      fd.lhs
+    )} \\) đối với \\( F_2 \\): \\( ${formatClosure(fd.lhs)} = ${formatSet(
+      closure2
+    )} \\). \\\\ \n`;
+
+    solution += `  So sánh vế phải \\( ${formatSet(
+      fd.rhs
+    )} \\) với bao đóng: \\\\ \n`;
+
+    if (isSubset) {
+      solution += `  Ta thấy \\( ${formatSet(fd.rhs)} \\subseteq ${formatSet(
+        closure2
+      )} \\). (\\textbf{Đúng})\n`;
+    } else {
+      solution += `  Ta thấy \\( ${formatSet(fd.rhs)} \\nsubseteq ${formatSet(
+        closure2
+      )} \\). (\\textbf{Sai})\n`;
+    }
+  }
+  solution += "\\end{itemize}\n"; // Kết thúc danh sách chính
+
+  // Kết luận cho Bước 1
+  if (f2CoversF1) {
+    solution +=
+      "\\textbf{Kết luận Bước 1:} Mọi phụ thuộc hàm trong \\( F_1 \\) đều được \\( F_2 \\) suy ra. (\\( F_1 \\subseteq F_2^+ \\))\n\n";
+  } else {
+    solution +=
+      "\\textbf{Kết luận Bước 1:} Tồn tại phụ thuộc hàm trong \\( F_1 \\) không được \\( F_2 \\) suy ra. (\\( F_1 \\nsubseteq F_2^+ \\))\n\n";
+  }
+
+  // --- Bước 2: Kiểm tra F_2 \subseteq F_1^+ ---
+  solution += "\\subsection{Bước 2: Kiểm tra \\( F_2 \\subseteq F_1^+ \\)}\n";
+  solution +=
+    "Ta xét từng phụ thuộc hàm trong \\( F_2 \\) và tìm bao đóng của vế trái đối với \\( F_1 \\).\n";
+  solution += "\\begin{itemize}\n"; // Bắt đầu danh sách
+
+  for (const fd of fds2) {
+    const { closure: closure1 } = closure(fd.lhs, fds1);
+    const isSubset = [...fd.rhs].every((attr) => closure1.has(attr));
+
+    if (!isSubset) {
+      f1CoversF2 = false;
+    }
+
+    // Tương tự, dùng \\ (xuống dòng)
+    solution += `  \\item Xét ${formatFD(fd)}: \\\\ \n`;
+    solution += `  Tìm \\( ${formatClosure(
+      fd.lhs
+    )} \\) đối với \\( F_1 \\): \\( ${formatClosure(fd.lhs)} = ${formatSet(
+      closure1
+    )} \\). \\\\ \n`;
+    solution += `  So sánh vế phải \\( ${formatSet(
+      fd.rhs
+    )} \\) với bao đóng: \\\\ \n`;
+
+    if (isSubset) {
+      solution += `  Ta thấy \\( ${formatSet(fd.rhs)} \\subseteq ${formatSet(
+        closure1
+      )} \\). (\\textbf{Đúng})\n`;
+    } else {
+      solution += `  Ta thấy \\( ${formatSet(fd.rhs)} \\nsubseteq ${formatSet(
+        closure1
+      )} \\). (\\textbf{Sai})\n`;
+    }
+  }
+  solution += "\\end{itemize}\n"; // Kết thúc danh sách chính
+
+  // Kết luận cho Bước 2
+  if (f1CoversF2) {
+    solution +=
+      "\\textbf{Kết luận Bước 2:} Mọi phụ thuộc hàm trong \\( F_2 \\) đều được \\( F_1 \\) suy ra. (\\( F_2 \\subseteq F_1^+ \\))\n\n";
+  } else {
+    solution +=
+      "\\textbf{Kết luận Bước 2:} Tồn tại phụ thuộc hàm trong \\( F_2 \\) không được \\( F_1 \\) suy ra. (\\( F_2 \\nsubseteq F_1^+ \\))\n\n";
+  }
+
+  // --- Kết luận cuối cùng ---
+  solution += "\n\n\\textbf{Kết luận cuối cùng}\n\n";
+  if (f1CoversF2 && f2CoversF1) {
+    solution +=
+      "Vì \\( F_1 \\subseteq F_2^+ \\) và \\( F_2 \\subseteq F_1^+ \\), hai tập phụ thuộc hàm \\( F_1 \\) và \\( F_2 \\) là **tương đương**.";
+  } else {
+    solution +=
+      "Vì một trong hai (hoặc cả hai) phép kiểm tra trên thất bại, hai tập phụ thuộc hàm \\( F_1 \\) và \\( F_2 \\) là **không tương đương**.";
+  }
+
+  return solution;
+}
+// export function areEquivalentFDs(
+//   fds1: FunctionalDependency[],
+//   fds2: FunctionalDependency[]
+// ): string {
+//   // const attrs1 = getAllAttributes(fds1, "both");
+//   // const attrs2 = getAllAttributes(fds2, "both");
+//   let equivalent = true;
+//   let solution =
+//     "\\section{Kiểm tra tính tương đương của hai tập phụ thuộc hàm}\n\n";
+//   for (const fd of fds1) {
+//     const { closure: closure2 } = closure(fd.lhs, fds2);
+//     const isSubset = [...fd.rhs].every((attr) => closure2.has(attr));
+//     equivalent = equivalent && isSubset;
+//     solution += `\\textbf{Xét phụ thuộc hàm} $${[...fd.lhs].join("")} \\to ${[
+//       ...fd.rhs,
+//     ].join("")}$ từ $F_1$: $(${[...fd.lhs].join("")})^+ = \\{${[
+//       ...closure2,
+//     ].join(", ")}\\}$ trong $F_2$. `;
+
+//     if (isSubset) {
+//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\subseteq (${[
+//         ...fd.lhs,
+//       ].join("")})^+$ nên phụ thuộc hàm này được $F_2$ suy ra.\n\n`;
+//     } else {
+//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\nsubseteq (${[
+//         ...fd.lhs,
+//       ].join(
+//         ""
+//       )})^+$ nên phụ thuộc hàm này không được $F_2$ suy ra. Do đó, $F_1$ và $F_2$ không tương đương.\n\n`;
+//       return solution;
+//     }
+//   }
+
+//   for (const fd of fds2) {
+//     const { closure: closure1 } = closure(fd.lhs, fds1);
+//     const isSubset = [...fd.rhs].every((attr) => closure1.has(attr));
+//     equivalent = equivalent && isSubset;
+//     solution += `\\textbf{Xét phụ thuộc hàm} $${[...fd.lhs].join("")} \\to ${[
+//       ...fd.rhs,
+//     ].join("")}$ từ $F_2$: $(${[...fd.lhs].join("")})^+ = \\{${[
+//       ...closure1,
+//     ].join(", ")}\\}$ trong $F_1$. `;
+//     if (isSubset) {
+//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\subseteq (${[
+//         ...fd.lhs,
+//       ].join("")})^+$ nên phụ thuộc hàm này được $F_1$ suy ra.\n\n`;
+//     } else {
+//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\nsubseteq (${[
+//         ...fd.lhs,
+//       ].join(
+//         ""
+//       )})^+$ nên phụ thuộc hàm này không được $F_1$ suy ra. Do đó, $F_1$ và $F_2$ không tương đương.\n\n`;
+//       return solution;
+//     }
+//   }
+
+//   if (equivalent) {
+//     solution +=
+//       "Vì mọi phụ thuộc hàm của $F_1$ đều được $F_2$ suy ra và ngược lại, nên $F_1$ và $F_2$ là tương đương.";
+//   } else {
+//     solution += "$F_1$ và $F_2$ không tương đương.";
+//   }
+//   return solution;
+// }
+
+// solution +=
+//   "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $\\{" +
+//   [...allAttributes].join(", ") +
+//   "\\}$.\n\n";

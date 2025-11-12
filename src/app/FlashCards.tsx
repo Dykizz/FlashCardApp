@@ -2,8 +2,8 @@
 import { useQuery } from "@tanstack/react-query";
 import FlashCard from "@/components/FlashCard";
 import { FlashCardBase } from "@/types/flashCard.type";
-import { fetchWithAuth } from "@/utils/apiClient";
 import { SkeletonCard } from "@/components/SkeletonCard";
+import { get } from "@/utils/apiClient";
 
 export default function FlashCards() {
   const {
@@ -13,11 +13,11 @@ export default function FlashCards() {
   } = useQuery({
     queryKey: ["flashcards"],
     queryFn: async () => {
-      const res = await fetchWithAuth("/api/flashcards");
+      const res = await get<FlashCardBase[]>("/api/flashcards");
       if (!res.success) {
-        throw new Error(res.error?.message || "Failed to fetch flashcards");
+        throw new Error(res.error?.message || "Lỗi tải flashcards");
       }
-      return res.data as FlashCardBase[];
+      return res.data;
     },
     retry: 1,
     refetchOnWindowFocus: false,
