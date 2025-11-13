@@ -8,12 +8,16 @@ import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
+import { QuestionSchema } from "@/models/Question";
+import { getCached } from "@/lib/cache";
 
 const FlashCardModel =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
 const FlashCardProgressModel =
   mongoose.models.FlashCardProgress ||
   mongoose.model("FlashCardProgress", FlashCardProgressSchema);
+const QuestionModel =
+  mongoose.models.Question || mongoose.model("Question", QuestionSchema);
 
 export async function GET(
   req: NextRequest,
@@ -47,37 +51,61 @@ export async function GET(
   }
 
   try {
-    const flashcard = await FlashCardModel.findById(id).populate("questionIds");
+    const flashcardData = await getCached(
+      `flashcard-detail:${id}`,
+      async () => {
+        console.log("LOG: Querying Flashcard from DB...");
 
-    if (!flashcard) {
+        const flashcard = await FlashCardModel.findById(id)
+          .populate("questionIds")
+          .lean();
+
+        if (!flashcard) return null;
+
+        const questions = (flashcard.questionIds as any[]) || [];
+
+        const flashcardResponse: Omit<FlashCardDetail, "peopleLearned"> = {
+          _id: flashcard._id.toString(),
+          title: (flashcard as any).title,
+          description: (flashcard as any).description,
+          totalQuestion: questions.length,
+          subject: (flashcard as any).subject,
+          questions: questions.map((q) => ({
+            _id: q._id.toString(),
+            content: q.content,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+          })),
+        };
+
+        return flashcardResponse;
+      },
+      3600
+    );
+
+    if (!flashcardData) {
       return NextResponse.json(errorResponse("Không tìm thấy FlashCard", 404), {
         status: 404,
       });
     }
 
-    const questions = flashcard.questionIds as any[];
+    await FlashCardProgressModel.findOneAndUpdate(
+      { userId: session.user.id, flashCardId: id },
+      { $inc: { count: 1 } },
+      { upsert: true, new: true }
+    );
 
     const peopleLearned = await FlashCardProgressModel.countDocuments({
-      flashCardId: flashcard._id,
+      flashCardId: flashcardData._id,
     });
 
-    const flashcardResponse: FlashCardDetail = {
-      _id: flashcard._id.toString(),
-      title: flashcard.title,
-      description: flashcard.description,
-      totalQuestion: flashcard.questionIds.length,
-      subject: flashcard.subject,
+    const response: FlashCardDetail = {
+      ...flashcardData,
       peopleLearned,
-      questions: questions.map((q) => ({
-        _id: q._id.toString(),
-        content: q.content,
-        options: q.options,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-      })),
     };
 
-    return NextResponse.json(successResponse(flashcardResponse), {
+    return NextResponse.json(successResponse(response), {
       status: 200,
       headers: Object.fromEntries(Object.entries(headers)),
     });

@@ -1,6 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { get } from "@/utils/apiClient";
 import { showToast } from "@/utils/toast";
@@ -17,8 +16,8 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { useCallback, useEffect, useState } from "react";
-import { FlashCardDetail, FlashCardProgress } from "@/types/flashCard.type";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { FlashCardDetail } from "@/types/flashCard.type";
 import { usePriorityQueue } from "./usePriorityQueue";
 import { GifDisplay } from "@/components/GifsDisplay";
 import NotFoundFlashCard from "./NotFoundFlashCard";
@@ -27,15 +26,8 @@ import { NotLogin } from "@/components/NotLogin";
 
 type FeedbackState = "idle" | "correct" | "incorrect";
 
-async function fetchFlashcard(id: string): Promise<{
-  flashcard: FlashCardDetail;
-  progress: FlashCardProgress;
-}> {
-  const res = await get<{
-    flashcard: FlashCardDetail;
-    progress: FlashCardProgress;
-  }>(`/api/flashcards/${id}`);
-
+async function fetchFlashcard(id: string): Promise<FlashCardDetail> {
+  const res = await get<FlashCardDetail>(`/api/flashcards/${id}`);
   if (!res.success) {
     throw new Error(res.error?.message || "Không thể tải flashcard");
   }
@@ -45,7 +37,7 @@ async function fetchFlashcard(id: string): Promise<{
 export default function FlashCardDetailPage() {
   const params = useParams();
   const id = params?.id as string;
-  const { data: seesion } = useSession();
+  const { data: session, status } = useSession();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [feedbackState, setFeedbackState] = useState<FeedbackState>("idle");
   const [autoNext, setAutoNext] = useState(false);
@@ -56,23 +48,36 @@ export default function FlashCardDetailPage() {
   const [showGif, setShowGif] = useState(false);
   const [onGif, setOnGif] = useState(false);
   const [gifType, setGifType] = useState<"correct" | "incorrect">("correct");
+  const [data, setData] = useState<FlashCardDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const hasFetched = useRef(false);
+  useEffect(() => {
+    hasFetched.current = false;
+  }, [id]);
+  useEffect(() => {
+    if (!session || !id || hasFetched.current) return;
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["flashcard", id],
-    queryFn: async () => {
-      if (!seesion) return;
-      const flashcardId = id as string;
-      return await fetchFlashcard(flashcardId);
-    },
-    staleTime: 15 * 60 * 1000,
-    retry: 1,
-    enabled: !!id,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-  });
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const result = await fetchFlashcard(id);
+        setData(result);
+      } catch (err) {
+        setError(err as Error);
+        showToast({
+          description: (err as Error).message || "Không thể tải flashcard",
+          type: "error",
+          title: "Lỗi",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const flashcard = data?.flashcard;
+    fetchData();
+    hasFetched.current = true;
+  }, [id, session]);
 
   const {
     currentQuestion,
@@ -81,7 +86,7 @@ export default function FlashCardDetailPage() {
     reset,
     stats,
     questionNumber,
-  } = usePriorityQueue(flashcard?.questions || [], isInfiniteLoop);
+  } = usePriorityQueue(data?.questions || [], isInfiniteLoop);
 
   useEffect(() => {
     if (error) {
@@ -158,7 +163,7 @@ export default function FlashCardDetailPage() {
     resetCardState();
   };
 
-  if (isLoading) {
+  if (isLoading || status === "loading") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col items-center gap-4">
@@ -172,9 +177,9 @@ export default function FlashCardDetailPage() {
     );
   }
 
-  if (!seesion) return <NotLogin />;
+  if (!session) return <NotLogin />;
 
-  if (error || !flashcard) {
+  if (error || !data) {
     return <NotFoundFlashCard />;
   }
 
@@ -211,10 +216,11 @@ export default function FlashCardDetailPage() {
           <>
             <header className="text-center mb-6">
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                {flashcard.title}
+                {data.title || "Flash Card"}
               </h1>
               <p className="text-muted-foreground mt-2  dark:text-slate-400">
-                {flashcard.description || "Kiểm tra kiến thức của bạn."}
+                {data.description ||
+                  "Học với flashcard để ghi nhớ hiệu quả hơn"}
               </p>
             </header>
             <div className="relative mb-4">

@@ -1,28 +1,15 @@
 import { Schema, model, models, Document, ObjectId } from "mongoose";
 
-export interface ProgressItem {
-  questionId: string;
-  weight: number;
-}
-
 export interface FlashCardProgress {
   _id: string | ObjectId;
   userId: string;
   flashCardId: ObjectId;
-  progress: ProgressItem[];
+  count: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export type FlashCardProgressDocument = FlashCardProgress & Document;
-
-const ProgressItemSchema = new Schema<ProgressItem>(
-  {
-    questionId: { type: String, required: true },
-    weight: { type: Number, required: true, default: 0 },
-  },
-  { _id: false }
-);
 
 export const FlashCardProgressSchema = new Schema<FlashCardProgress>(
   {
@@ -32,10 +19,7 @@ export const FlashCardProgressSchema = new Schema<FlashCardProgress>(
       ref: "FlashCard",
       required: true,
     },
-    progress: {
-      type: [ProgressItemSchema],
-      default: [],
-    },
+    count: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

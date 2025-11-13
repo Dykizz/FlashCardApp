@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
     const flashcards = await getCached(
       "flashcards:all",
       async () => {
+        console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
         return await FlashCard.find({}).sort({ createdAt: -1 }).lean();
       },
       900

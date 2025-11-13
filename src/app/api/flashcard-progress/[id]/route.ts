@@ -8,13 +8,9 @@ import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
-import { QuestionSchema } from "@/models/Question";
 
 const FlashCardModel =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
-// ⭐ Đăng ký Question model để populate hoạt động
-const QuestionModel =
-  mongoose.models.Question || mongoose.model("Question", QuestionSchema);
 const FlashCardProgressModel =
   mongoose.models.FlashCardProgress ||
   mongoose.model("FlashCardProgress", FlashCardProgressSchema);
@@ -51,7 +47,7 @@ export async function GET(
   }
 
   try {
-    const flashcard = await FlashCardModel.findById(id).populate("questionIds");
+    const flashcard = await FlashCardModel.findById(id);
 
     if (!flashcard) {
       return NextResponse.json(errorResponse("Không tìm thấy FlashCard", 404), {
