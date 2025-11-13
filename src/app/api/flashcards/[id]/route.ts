@@ -25,6 +25,7 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
 
+  // 1. Kiểm tra đăng nhập
   if (!session || !session.user) {
     return NextResponse.json(errorResponse("Vui lòng đăng nhập", 401), {
       status: 401,
@@ -34,6 +35,7 @@ export async function GET(
   await dbConnect();
   const identifier = session.user.email;
 
+  // 2. Kiểm tra Rate Limit
   const { success, headers } = await checkRateLimit(identifier, "api");
 
   if (!success) {
@@ -51,26 +53,27 @@ export async function GET(
   }
 
   try {
+    // --- BƯỚC 1: Lấy dữ liệu TĨNH (Cached) ---
     const flashcardData = await getCached(
       `flashcard-detail:${id}`,
       async () => {
-        console.log("LOG: Querying Flashcard from DB...");
+        console.log("LOG: Querying Flashcard from DB (Cache Miss)...");
 
-        const flashcard = await FlashCardModel.findById(id)
+        const flashcard = (await FlashCardModel.findById(id)
           .populate("questionIds")
-          .lean();
+          .lean()) as any;
 
         if (!flashcard) return null;
 
-        const questions = (flashcard.questionIds as any[]) || [];
+        const questions = flashcard.questionIds || [];
 
         const flashcardResponse: Omit<FlashCardDetail, "peopleLearned"> = {
           _id: flashcard._id.toString(),
-          title: (flashcard as any).title,
-          description: (flashcard as any).description,
+          title: flashcard.title,
+          description: flashcard.description,
           totalQuestion: questions.length,
-          subject: (flashcard as any).subject,
-          questions: questions.map((q) => ({
+          subject: flashcard.subject,
+          questions: questions.map((q: any) => ({
             _id: q._id.toString(),
             content: q.content,
             options: q.options,
@@ -90,11 +93,13 @@ export async function GET(
       });
     }
 
-    await FlashCardProgressModel.findOneAndUpdate(
-      { userId: session.user.id, flashCardId: id },
-      { $inc: { count: 1 } },
-      { upsert: true, new: true }
-    );
+    if (session.user.id) {
+      await FlashCardProgressModel.findOneAndUpdate(
+        { userId: session.user.id, flashCardId: id },
+        { $inc: { count: 1 } },
+        { upsert: true, new: true }
+      );
+    }
 
     const peopleLearned = await FlashCardProgressModel.countDocuments({
       flashCardId: flashcardData._id,
@@ -111,7 +116,7 @@ export async function GET(
     });
   } catch (err: any) {
     console.error("[API] Error:", err);
-    return NextResponse.json(errorResponse("Lỗi tải flashcard progress", 500), {
+    return NextResponse.json(errorResponse("Lỗi tải flashcard details", 500), {
       status: 500,
     });
   }

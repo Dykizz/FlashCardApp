@@ -1,12 +1,12 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { get } from "@/utils/apiClient";
 import { showToast } from "@/utils/toast";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Flashcard } from "./FlashCard";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ArrowLeft } from "lucide-react";
 import { Loader2 } from "lucide-react";
 
 import {
@@ -23,7 +23,6 @@ import { GifDisplay } from "@/components/GifsDisplay";
 import NotFoundFlashCard from "./NotFoundFlashCard";
 import { useSession } from "next-auth/react";
 import { NotLogin } from "@/components/NotLogin";
-
 type FeedbackState = "idle" | "correct" | "incorrect";
 
 async function fetchFlashcard(id: string): Promise<FlashCardDetail> {
@@ -36,6 +35,7 @@ async function fetchFlashcard(id: string): Promise<FlashCardDetail> {
 
 export default function FlashCardDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id as string;
   const { data: session, status } = useSession();
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
@@ -185,7 +185,7 @@ export default function FlashCardDetailPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 font-sans text-slate-900 dark:text-slate-50">
-      <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="w-full max-w-7xl mx-auto ">
         {isCompleted ? (
           <Card className="text-center max-w-2xl mx-auto">
             <CardHeader>
@@ -215,13 +215,27 @@ export default function FlashCardDetailPage() {
         ) : (
           <>
             <header className="text-center mb-6">
+              <div className="flex items-center justify-start gap-4 mb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/flashcards")}
+                  className="cursor-pointer"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Quay lại
+                </Button>
+              </div>
+
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
                 {data.title || "Flash Card"}
               </h1>
-              <p className="text-muted-foreground mt-2  dark:text-slate-400">
-                {data.description ||
-                  "Học với flashcard để ghi nhớ hiệu quả hơn"}
-              </p>
+              <div className="flex justify-center">
+                <p className="text-muted-foreground w-150 mt-2 dark:text-slate-400">
+                  {data.description ||
+                    "Học với flashcard để ghi nhớ hiệu quả hơn"}
+                </p>
+              </div>
             </header>
             <div className="relative mb-4">
               {onGif && (
