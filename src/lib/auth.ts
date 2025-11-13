@@ -14,6 +14,20 @@ export const authOptions: AuthOptions = {
     }),
   ],
 
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
+
+  secret: process.env.NEXTAUTH_SECRET,
+
   callbacks: {
     async signIn({ user, account, profile }) {
       try {
