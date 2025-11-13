@@ -10,6 +10,7 @@ import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
 import { QuestionSchema } from "@/models/Question";
 import { getCached } from "@/lib/cache";
+import { ObjectId } from "mongodb";
 
 const FlashCardModel =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
@@ -92,7 +93,7 @@ export async function GET(
 
     if (session.user.id) {
       await FlashCardProgressModel.findOneAndUpdate(
-        { userId: session.user.id, flashCardId: id },
+        { userId: new ObjectId(session.user.id), flashCardId: id },
         {
           $inc: { count: 1 },
           $setOnInsert: {
