@@ -8,9 +8,13 @@ import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
+import { QuestionSchema } from "@/models/Question";
 
 const FlashCardModel =
   mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
+// ⭐ Đăng ký Question model để populate hoạt động
+const QuestionModel =
+  mongoose.models.Question || mongoose.model("Question", QuestionSchema);
 const FlashCardProgressModel =
   mongoose.models.FlashCardProgress ||
   mongoose.model("FlashCardProgress", FlashCardProgressSchema);
