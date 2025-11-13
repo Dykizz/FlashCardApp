@@ -25,7 +25,6 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
 
-  // 1. Kiểm tra đăng nhập
   if (!session || !session.user) {
     return NextResponse.json(errorResponse("Vui lòng đăng nhập", 401), {
       status: 401,
@@ -35,7 +34,6 @@ export async function GET(
   await dbConnect();
   const identifier = session.user.email;
 
-  // 2. Kiểm tra Rate Limit
   const { success, headers } = await checkRateLimit(identifier, "api");
 
   if (!success) {
@@ -53,7 +51,6 @@ export async function GET(
   }
 
   try {
-    // --- BƯỚC 1: Lấy dữ liệu TĨNH (Cached) ---
     const flashcardData = await getCached(
       `flashcard-detail:${id}`,
       async () => {
@@ -96,8 +93,14 @@ export async function GET(
     if (session.user.id) {
       await FlashCardProgressModel.findOneAndUpdate(
         { userId: session.user.id, flashCardId: id },
-        { $inc: { count: 1 } },
-        { upsert: true, new: true }
+        {
+          $inc: { count: 1 },
+          $setOnInsert: {
+            userId: session.user.id,
+            flashCardId: id,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
     }
 
