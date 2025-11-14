@@ -20,7 +20,7 @@ import {
   FunctionalDependency,
   ChaseResult,
   checkDependencyPreservation,
-  decomposeTo3NF, // Hàm này đã được import
+  decomposeTo3NF,
 } from "./feature";
 import LatexContentRender from "@/components/LatexContentRender";
 import KeyTree from "./KeyTree";
@@ -30,7 +30,7 @@ import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
 import { NotLogin } from "@/components/NotLogin";
 import { useMapping } from "./useMapping";
-import { ProblemType } from "@/types/enum"; // Đảm bảo bạn đã thêm FDPreservation vào enum này
+import { ProblemType } from "@/types/enum";
 import NotSolution from "./NotSolution";
 import InputCard from "./InputCard";
 import Example from "./Example";
@@ -405,9 +405,6 @@ export default function FeaturePage() {
                     <LatexContentRender content={solution} border={false} />
                   </div>
 
-                  {/* ✅ SỬA: Điều kiện này giờ đã đúng, không cần
-                      hiển thị ChaseTable cho FDPreservation
-                  */}
                   {problemType === ProblemType.DataPreservation &&
                     chaseResult && (
                       <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
@@ -417,7 +414,7 @@ export default function FeaturePage() {
                         <ChaseTable
                           data={chaseResult}
                           headers={chaseResult.headers}
-                          rowNames={relations.map((_, i) => `R${i + 1}`)}
+                          rowNames={chaseResult.rowNames}
                         />
                       </div>
                     )}

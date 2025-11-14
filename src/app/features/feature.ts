@@ -899,9 +899,10 @@ export function determineNormalForm(fds: FunctionalDependency[]): string {
     solution += `\\item $\\to$ Đây là một \\textbf{phụ thuộc bộ phận}.\n`;
     solution += "\\end{itemize}\n\n";
     solution += "Do đó, lược đồ quan hệ \\textbf{không đạt 2NF}.\n\n";
-    solution += "\\textbf{Kết luận} :";
     solution +=
-      "Vì quan hệ không đạt 2NF, nó cũng \\textbf{không đạt 3NF} và \\textbf{không đạt BCNF}.";
+      "Vì quan hệ không đạt 2NF, thì nó cũng \\textbf{không đạt 3NF} và \\textbf{không đạt BCNF}.\n\n";
+    solution +=
+      "\\textbf{Kết luận} : Quan hệ đạt dạng chuẩn cao nhất là \\textbf{1NF}.";
     return solution;
   }
 
@@ -950,9 +951,10 @@ export function determineNormalForm(fds: FunctionalDependency[]): string {
     solution += `\\item $\\to$ Đây là một \\textbf{phụ thuộc bắc cầu}.\n`;
     solution += "\\end{itemize}\n\n";
     solution += "Do đó, lược đồ quan hệ \\textbf{không đạt 3NF}.\n\n";
-    solution += "\\subsection{Kết luận}\n\n";
     solution +=
-      "Vì quan hệ không đạt 3NF, nó cũng \\textbf{không đạt BCNF}. Dạng chuẩn cao nhất là \\textbf{2NF}.";
+      "Vì quan hệ không đạt 3NF, nó cũng \\textbf{không đạt BCNF}.\n\n";
+    solution +=
+      "\\textbf{Kết luận} : Quan hệ đạt dạng chuẩn cao nhất là \\textbf{2NF}.";
     return solution;
   }
 
@@ -1026,6 +1028,7 @@ export interface ChaseResult {
   steps: ChaseStep[];
   isLossless: boolean;
   headers: string[];
+  rowNames: string[];
 }
 
 export function matrixToLatex(
@@ -1061,7 +1064,9 @@ export function checkDataPreservation(
   const allAttrs = Array.from(getAllAttributes(fds, "both")).sort();
   const headers = allAttrs;
 
-  const rowNames = relations.map((_, i) => `R_{${i + 1}}`);
+  const rowNames = relations.map(
+    (rel, i) => `R_{${i + 1}}(\\text{${formatAttrs(rel)}})`
+  );
 
   // 1. Khởi tạo bảng ban đầu (Logic a_j chuẩn)
   const matrix: string[][] = relations.map((rel, rowIndex) => {
@@ -1081,7 +1086,7 @@ export function checkDataPreservation(
   // Thông tin input
   solution += `\\begin{itemize}\n`;
   solution += `\\item Lược đồ gốc $R = ${formatSet(new Set(allAttrs))}$.\n`;
-  solution += `\\item Phép tách $\\rho = \\{ ${rowNames.join(", ")} \\}$.\n`;
+  solution += `\\item Phép tách $\\rho = ${formatSet(new Set(rowNames))}$.\n`;
   solution += `\\item Tập phụ thuộc hàm $F = \\{ ${fdsToLatex(fds)} \\}$.\n`;
   solution += `\\end{itemize}\n\n`;
 
@@ -1212,6 +1217,7 @@ export function checkDataPreservation(
     steps,
     isLossless,
     headers,
+    rowNames,
   };
 }
 

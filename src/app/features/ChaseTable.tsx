@@ -81,12 +81,11 @@ export const ChaseTable: React.FC<ChaseTableProps> = ({
                       className="border border-gray-300 px-4 py-2 font-semibold text-slate-700 dark:text-slate-200"
                     >
                       <div className="flex justify-center">
-                        {/* Chỉ render nếu h có giá trị */}
                         {h ? (
                           <LatexContentRender
                             content={`$${h}$`}
                             border={false}
-                            className="!p-0 [&_p]:mb-0 font-bold"
+                            className="p-0! [&_p]:mb-0 font-bold"
                           />
                         ) : (
                           <span>&nbsp;</span>
@@ -102,8 +101,14 @@ export const ChaseTable: React.FC<ChaseTableProps> = ({
                     key={rIdx}
                     className="hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
                   >
-                    <td className="border border-gray-300 px-4 py-2 font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 text-center">
-                      {rowNames[rIdx] || `R${rIdx + 1}`}
+                    <td className="border border-gray-300 px-4 py-2 font-bold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 text-center align-middle">
+                      <div className="flex justify-center items-center">
+                        <LatexContentRender
+                          content={`$${rowNames[rIdx] || `R_{${rIdx + 1}}`}$`}
+                          border={false}
+                          className="p-0! [&_p]:mb-0"
+                        />
+                      </div>
                     </td>
                     {row.map((cellVal, cIdx) => {
                       const isHighlight = step.highlightCells.some(
