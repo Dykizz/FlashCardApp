@@ -3,7 +3,7 @@ import { ProblemType } from "@/types/enum";
 export default function Header({ problemType }: { problemType: ProblemType }) {
   return (
     <div className="text-center mb-8">
-      <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-snug pb-1">
         {problemType === ProblemType.MinimalCover
           ? "Tìm Phủ Tối Tiểu"
           : problemType === ProblemType.CandidateKeys
