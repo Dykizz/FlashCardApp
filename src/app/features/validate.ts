@@ -4,7 +4,8 @@ import { FunctionalDependency, getAllAttributes } from "./feature";
 export function validateInput(
   problemType: string,
   fds: FunctionalDependency[],
-  attrsToClose?: string
+  attrsToClose: string,
+  relations: string[]
 ): { valid: boolean; error?: string } {
   if (fds.length === 0) {
     return {
@@ -41,7 +42,6 @@ export function validateInput(
   // Specific validation for each problem type
   switch (problemType) {
     case ProblemType.MinimalCover:
-      // Minimal cover can handle more FDs
       if (fds.length > 25) {
         return {
           valid: false,
@@ -51,29 +51,24 @@ export function validateInput(
       break;
 
     case ProblemType.CandidateKeys:
-      // Candidate keys is most expensive - stricter limits
       if (attrs.size > 12) {
         return {
           valid: false,
           error: `Tìm khóa chính: Số thuộc tính không được vượt quá 12 (hiện tại: ${attrs.size})`,
         };
       }
-
       if (fds.length > 20) {
         return {
           valid: false,
           error: `Tìm khóa chính: Số phụ thuộc hàm không được vượt quá 20 (hiện tại: ${fds.length})`,
         };
       }
-
-      // Check for trivial cases
       const leftOnly = getAllAttributes(fds, "left");
       const rightOnly = new Set(
         [...getAllAttributes(fds, "right")].filter(
           (attr) => !leftOnly.has(attr)
         )
       );
-
       if (rightOnly.size === attrs.size) {
         return {
           valid: false,
@@ -84,22 +79,18 @@ export function validateInput(
       break;
 
     case ProblemType.Closure:
-      // Validate attrsToClose
       if (!attrsToClose || attrsToClose.trim() === "") {
         return {
           valid: false,
           error: "Vui lòng nhập thuộc tính muốn tìm bao đóng",
         };
       }
-
-      // Check if all attributes in attrsToClose exist in FDs
       const attrsToCloseSet = new Set(
         attrsToClose
           .split("")
           .map((attr) => attr.trim())
           .filter(Boolean)
       );
-
       for (const attr of attrsToCloseSet) {
         if (!attrs.has(attr)) {
           return {
@@ -108,7 +99,6 @@ export function validateInput(
           };
         }
       }
-
       if (attrsToCloseSet.size === 0) {
         return {
           valid: false,
@@ -116,8 +106,43 @@ export function validateInput(
         };
       }
       break;
+
+    // ✅ BẮT ĐẦU SỬA
+    case ProblemType.DataPreservation:
+    case ProblemType.FDPreservation:
+      // Thêm logic kiểm tra cho relations
+      if (!relations || relations.length < 2) {
+        return {
+          valid: false,
+          error:
+            "Cần nhập ít nhất 2 lược đồ con (ví dụ: R1, R2) để thực hiện bài toán này.",
+        };
+      }
+      for (const [index, relStr] of relations.entries()) {
+        const cleaned = relStr.replace(/[^a-zA-Z0-9]/g, "");
+        if (cleaned.length === 0) {
+          return {
+            valid: false,
+            error: `Lược đồ con R${index + 1} không được để trống.`,
+          };
+        }
+        // Kiểm tra xem thuộc tính trong lược đồ con có tồn tại trong FDs không
+        for (const attr of cleaned.split("")) {
+          if (!attrs.has(attr)) {
+            return {
+              valid: false,
+              error: `Thuộc tính "${attr}" trong R${
+                index + 1
+              } không tồn tại trong tập phụ thuộc hàm.`,
+            };
+          }
+        }
+      }
+      break;
+
+    case ProblemType.Decompose3NF:
     case ProblemType.Equivalence:
-      // No specific validation for equivalence
+    case ProblemType.NormalForm:
       break;
 
     default:

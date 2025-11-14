@@ -107,6 +107,7 @@ const LatexContentRender: React.FC<LatexContentRenderProps> = ({
 
       // 6. Extract inline math $...$
       processedText = processedText.replace(
+        // Regex này tìm các cặp $...$ không rỗng
         /\$([^\s$][^$]*?[^\s$]|\S)\$/g,
         (match, math) => {
           const placeholder = `%%%MATH_INLINE_${mathExpressions.length}%%%`;
@@ -119,43 +120,69 @@ const LatexContentRender: React.FC<LatexContentRenderProps> = ({
         }
       );
 
-      // Convert LaTeX text formatting to HTML
+      // --- BẮT ĐẦU PHẦN CẢI THIỆN ---
+      // 7. Chuyển đổi các lệnh LaTeX phổ biến (nằm ngoài $) sang HTML/Unicode
+      // Đây là bước FIX để xử lý các lệnh như \quad, \to bị sót lại
+
+      // Ký tự khoảng cách
+      processedText = processedText.replace(
+        /\\quad/g,
+        "&nbsp;&nbsp;&nbsp;&nbsp;"
+      ); // \quad
+      processedText = processedText.replace(
+        /\\qquad/g,
+        "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+      ); // \qquad
+
+      // Ký tự mũi tên
+      processedText = processedText.replace(/\\to/g, "→"); // \to
+      processedText = processedText.replace(/\\rightarrow/g, "→"); // \rightarrow
+
+      // Ký tự logic/tập hợp
+      processedText = processedText.replace(/\\cap/g, "∩"); // \cap (Intersection)
+      processedText = processedText.replace(/\\cup/g, "∪"); // \cup (Union)
+      processedText = processedText.replace(/\\subseteq/g, "⊆"); // \subseteq
+      processedText = processedText.replace(/\\nsubseteq/g, "⊈"); // \nsubseteq
+      processedText = processedText.replace(/\\emptyset/g, "∅"); // \emptyset
+      processedText = processedText.replace(/\\neq/g, "≠"); // \neq
+      processedText = processedText.replace(/\\in/g, "∈"); // \in
+      processedText = processedText.replace(/\\notin/g, "∉"); // \notin
+
+      // --- KẾT THÚC PHẦN CẢI THIỆN ---
+
+      // 8. Convert LaTeX text formatting to HTML
       // \textbf{...} → <strong>...</strong>
       processedText = processedText.replace(
         /\\textbf\{([^}]+)\}/g,
         "<strong>$1</strong>"
       );
-
       // \textit{...} → <em>...</em>
       processedText = processedText.replace(
         /\\textit\{([^}]+)\}/g,
         "<em>$1</em>"
       );
-
       // \underline{...} → <u>...</u>
       processedText = processedText.replace(
         /\\underline\{([^}]+)\}/g,
         "<u>$1</u>"
       );
-
       // \section{...} → <h2>...</h2>
       processedText = processedText.replace(
         /\\section\{([^}]+)\}/g,
         "<h2>$1</h2>"
       );
-
       // \subsection{...} → <h3>...</h3>
       processedText = processedText.replace(
         /\\subsection\{([^}]+)\}/g,
         "<h3>$1</h3>"
       );
-
       // \subsubsection{...} → <h4>...</h4>
       processedText = processedText.replace(
         /\\subsubsection\{([^}]+)\}/g,
         "<h4>$1</h4>"
       );
 
+      // 9. Xử lý danh sách (List)
       // \begin{itemize}...\end{itemize} → <ul>...</ul>
       processedText = processedText.replace(
         /\\begin\{itemize\}([\s\S]*?)\\end\{itemize\}/g,
@@ -168,7 +195,6 @@ const LatexContentRender: React.FC<LatexContentRenderProps> = ({
           return `<ul>${items}</ul>`;
         }
       );
-
       // \begin{enumerate}...\end{enumerate} → <ol>...</ol>
       processedText = processedText.replace(
         /\\begin\{enumerate\}([\s\S]*?)\\end\{enumerate\}/g,
@@ -182,12 +208,11 @@ const LatexContentRender: React.FC<LatexContentRenderProps> = ({
         }
       );
 
+      // 10. Xử lý ngắt dòng và đoạn
       // \\ (line break) → <br>
       processedText = processedText.replace(/\\\\/g, "<br>");
-
       // \par (paragraph break) → <br><br>
       processedText = processedText.replace(/\\par\s*/g, "<br><br>");
-
       // Double newlines → <p> tags
       processedText = processedText
         .split(/\n\s*\n/)
@@ -195,18 +220,24 @@ const LatexContentRender: React.FC<LatexContentRenderProps> = ({
         .map((p) => `<p>${p.trim()}</p>`)
         .join("");
 
-      // Replace math placeholders with span tags
+      // 11. Replace math placeholders with span tags
       mathExpressions.forEach((math) => {
+        // Thêm class block và margin cho display math để sửa lỗi dính lề
+        const displayClasses =
+          math.type === "display" ? "block my-6 w-full overflow-x-auto" : "";
+
         const spanTag = `<span class="math-${
           math.type
-        }" data-math="${encodeURIComponent(math.content)}"></span>`;
+        } ${displayClasses}" data-math="${encodeURIComponent(
+          math.content
+        )}"></span>`;
         processedText = processedText.split(math.placeholder).join(spanTag);
       });
 
       // Insert HTML into container
       container.innerHTML = processedText;
 
-      // Render math with KaTeX
+      // 12. Render math with KaTeX
       const mathElements = container.querySelectorAll(
         ".math-display, .math-inline"
       );

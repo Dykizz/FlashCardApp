@@ -124,8 +124,6 @@ export function getAllAttributes(
   return attrs;
 }
 
-//Hàm lấy
-
 // Hàm kiểm tra xem có thể loại bỏ thuộc tính dư ở vế trái của phụ thuộc hàm hay không
 export function isCanMinimizeLHS(
   fd: FunctionalDependency,
@@ -298,6 +296,9 @@ export function removeRedundantFDs(fds: FunctionalDependency[]): {
   return { fds: result, steps };
 }
 
+// --- ✅ KHU VỰC HELPER (ĐÃ DI CHUYỂN LÊN ĐÂY) ---
+// Các hàm này giờ là global và các hàm logic chính sẽ gọi chúng
+
 export function toLatexClosure(
   attrs: Set<Attribute>,
   closure: Set<Attribute>
@@ -317,15 +318,56 @@ export function fdsToLatex(fds: FunctionalDependency[]): string {
     .join(", ");
 }
 
+/** Biến Set thành chuỗi \{A, B, C\} (dùng bên trong math mode) */
+const formatSet = (s: Set<Attribute>): string => {
+  if (s.size === 0) {
+    return `\\emptyset`; // Trả về ký hiệu rỗng nếu Set rỗng
+  }
+  return `\\{${[...s].join(", ")}\\}`;
+};
+/** Biến Set thành chuỗi AB (dùng bên trong math mode) */
+const formatAttrs = (s: Set<Attribute>): string => [...s].join("");
+
+/** Biến Set thành chuỗi (AB)+ (dùng bên trong math mode) */
+const formatClosure = (s: Set<Attribute>): string => `(${formatAttrs(s)})^+`;
+
+/** Trả về tập hợp các phần tử chung */
+function intersection(
+  setA: Set<Attribute>,
+  setB: Set<Attribute>
+): Set<Attribute> {
+  const _intersection = new Set<Attribute>();
+  setB.forEach((elem) => {
+    if (setA.has(elem)) {
+      _intersection.add(elem);
+    }
+  });
+  return _intersection;
+}
+
+/** Helper cho Thuật toán Chase: Lấy số từ a_{i} hoặc b_{ij} */
+function getNumericIndex(val: string): number {
+  try {
+    const match = val.match(/\{(\d+)\}/);
+    if (match) return parseInt(match[1], 10);
+    const numMatch = val.match(/\d+$/);
+    if (numMatch) return parseInt(numMatch[0], 10);
+    return Infinity;
+  } catch (e) {
+    return Infinity;
+  }
+}
+// --- KẾT THÚC KHU VỰC HELPER ---
+
 export function findMinimalCover(fds: FunctionalDependency[]): string {
   const allAttributes = getAllAttributes(fds, "both");
 
   let solution = "\\section{Tìm phủ tối tiểu}\n\n";
 
-  solution +=
-    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $\\{" +
-    [...allAttributes].join(", ") +
-    "\\}$.\n\n";
+  solution += solution +=
+    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $" +
+    formatSet(allAttributes) +
+    "$.\n\n";
 
   solution += "$$F = \\{" + fdsToLatex(fds) + "\\}$$\n\n";
 
@@ -438,10 +480,11 @@ export function findClousure(
   const { closure: attrsClosure, steps } = closure(attrsSet, fds);
 
   let solution = "\\section{Tìm đóng của tập thuộc tính}\n\n";
+  const allAttributes = getAllAttributes(fds, "both");
   solution +=
-    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $\\{" +
-    [...getAllAttributes(fds, "both")].join(", ") +
-    "\\}$.\n\n";
+    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $" +
+    formatSet(allAttributes) +
+    "$.\n\n";
   solution += "$$F = \\{" + fdsToLatex(fds) + "\\}$$\n\n";
 
   solution += `\\subsection{Tính bao đóng của tập thuộc tính $\\{${[
@@ -466,7 +509,6 @@ export function findClousure(
 }
 
 //Phần tìm các khóa của quan hệ
-//Dùng tree để biểu diễn quá trình tìm khóa
 export interface Node {
   id: string;
   parentId: string | null;
@@ -559,11 +601,11 @@ export function findCandidateKeys(fds: FunctionalDependency[]): {
   const { keys, steps } = findKeys(fds);
 
   let solution = "\\section{Tìm khóa chính}\n\n";
-
-  solution +=
-    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $\\{" +
-    [...getAllAttributes(fds, "both")].join(", ") +
-    "\\}$.\n\n";
+  const allAttributes = getAllAttributes(fds, "both");
+  solution += solution +=
+    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $" +
+    formatSet(allAttributes) +
+    "$.\n\n";
 
   solution += "$$F = \\{" + fdsToLatex(fds) + "\\}$$\n\n";
 
@@ -602,7 +644,7 @@ export function findCandidateKeys(fds: FunctionalDependency[]): {
     solution += "\\end{itemize}\n\n";
   }
 
-  solution += "\\subsection{Kết luận}\n\n";
+  solution += "\\textbf{Kết luận} :";
   if (keys.length === 0) {
     solution += "Không tìm thấy khóa chính nào.";
   } else {
@@ -649,36 +691,20 @@ export function areEquivalentFDs(
   fds1: FunctionalDependency[],
   fds2: FunctionalDependency[]
 ): string {
-  // --- Các hàm helper để định dạng LaTeX ---
-
-  /** Biến Set thành chuỗi \{A, B, C\} (dùng bên trong math mode) */
-  const formatSet = (s: Set<string>): string => `\\{${[...s].join(", ")}\\}`;
-
-  /** Biến Set thành chuỗi AB (dùng bên trong math mode) */
-  const formatAttrs = (s: Set<string>): string => [...s].join("");
-
-  /** Biến Set thành chuỗi (AB)^+ (dùng bên trong math mode) */
-  const formatClosure = (s: Set<string>): string => `(${formatAttrs(s)})^+`;
-
-  /** Biến một FD thành chuỗi \( A \to B \) (math block hoàn chỉnh) */
-  const formatFD = (fd: FunctionalDependency): string =>
-    `\\( ${formatAttrs(fd.lhs)} \\to ${formatAttrs(fd.rhs)} \\)`;
-
-  // --- Logic chính ---
+  // ✅ Đã xóa định nghĩa hàm helper (formatSet, formatAttrs, ...) ở đây
+  // vì chúng đã được chuyển lên global
 
   let f2CoversF1 = true; // Cờ cho F_1 \subseteq F_2^+
   let f1CoversF2 = true; // Cờ cho F_2 \subseteq F_1^+
 
-  // Bọc F_1, F_2 trong math mode
   let solution =
     "\\section{Kiểm tra tính tương đương của \\( F_1 \\) và \\( F_2 \\)}\n\n";
 
   // --- Bước 1: Kiểm tra F_1 \subseteq F_2^+ ---
-  // Bọc F_1 \subseteq F_2^+ trong math mode
   solution += "\\subsection{Bước 1: Kiểm tra \\( F_1 \\subseteq F_2^+ \\)}\n";
   solution +=
     "Ta xét từng phụ thuộc hàm trong \\( F_1 \\) và tìm bao đóng của vế trái đối với \\( F_2 \\).\n";
-  solution += "\\begin{itemize}\n"; // Bắt đầu danh sách
+  solution += "\\begin{itemize}\n";
 
   for (const fd of fds1) {
     const { closure: closure2 } = closure(fd.lhs, fds2);
@@ -688,16 +714,15 @@ export function areEquivalentFDs(
       f2CoversF1 = false;
     }
 
-    // LOẠI BỎ itemize lồng nhau. Dùng \\ (xuống dòng) thay thế.
-    solution += `  \\item Xét ${formatFD(fd)}: \\\\ \n`;
-
-    // Bọc tất cả math snippets trong \( ... \)
+    const fdLatex = `\\( ${formatAttrs(fd.lhs)} \\to ${formatAttrs(
+      fd.rhs
+    )} \\)`;
+    solution += `  \\item Xét ${fdLatex}: \\\\ \n`;
     solution += `  Tìm \\( ${formatClosure(
       fd.lhs
     )} \\) đối với \\( F_2 \\): \\( ${formatClosure(fd.lhs)} = ${formatSet(
       closure2
     )} \\). \\\\ \n`;
-
     solution += `  So sánh vế phải \\( ${formatSet(
       fd.rhs
     )} \\) với bao đóng: \\\\ \n`;
@@ -712,9 +737,8 @@ export function areEquivalentFDs(
       )} \\). (\\textbf{Sai})\n`;
     }
   }
-  solution += "\\end{itemize}\n"; // Kết thúc danh sách chính
+  solution += "\\end{itemize}\n";
 
-  // Kết luận cho Bước 1
   if (f2CoversF1) {
     solution +=
       "\\textbf{Kết luận Bước 1:} Mọi phụ thuộc hàm trong \\( F_1 \\) đều được \\( F_2 \\) suy ra. (\\( F_1 \\subseteq F_2^+ \\))\n\n";
@@ -727,7 +751,7 @@ export function areEquivalentFDs(
   solution += "\\subsection{Bước 2: Kiểm tra \\( F_2 \\subseteq F_1^+ \\)}\n";
   solution +=
     "Ta xét từng phụ thuộc hàm trong \\( F_2 \\) và tìm bao đóng của vế trái đối với \\( F_1 \\).\n";
-  solution += "\\begin{itemize}\n"; // Bắt đầu danh sách
+  solution += "\\begin{itemize}\n";
 
   for (const fd of fds2) {
     const { closure: closure1 } = closure(fd.lhs, fds1);
@@ -737,8 +761,10 @@ export function areEquivalentFDs(
       f1CoversF2 = false;
     }
 
-    // Tương tự, dùng \\ (xuống dòng)
-    solution += `  \\item Xét ${formatFD(fd)}: \\\\ \n`;
+    const fdLatex = `\\( ${formatAttrs(fd.lhs)} \\to ${formatAttrs(
+      fd.rhs
+    )} \\)`;
+    solution += `  \\item Xét ${fdLatex}: \\\\ \n`;
     solution += `  Tìm \\( ${formatClosure(
       fd.lhs
     )} \\) đối với \\( F_1 \\): \\( ${formatClosure(fd.lhs)} = ${formatSet(
@@ -758,9 +784,8 @@ export function areEquivalentFDs(
       )} \\). (\\textbf{Sai})\n`;
     }
   }
-  solution += "\\end{itemize}\n"; // Kết thúc danh sách chính
+  solution += "\\end{itemize}\n";
 
-  // Kết luận cho Bước 2
   if (f1CoversF2) {
     solution +=
       "\\textbf{Kết luận Bước 2:} Mọi phụ thuộc hàm trong \\( F_2 \\) đều được \\( F_1 \\) suy ra. (\\( F_2 \\subseteq F_1^+ \\))\n\n";
@@ -781,72 +806,683 @@ export function areEquivalentFDs(
 
   return solution;
 }
-// export function areEquivalentFDs(
-//   fds1: FunctionalDependency[],
-//   fds2: FunctionalDependency[]
-// ): string {
-//   // const attrs1 = getAllAttributes(fds1, "both");
-//   // const attrs2 = getAllAttributes(fds2, "both");
-//   let equivalent = true;
-//   let solution =
-//     "\\section{Kiểm tra tính tương đương của hai tập phụ thuộc hàm}\n\n";
-//   for (const fd of fds1) {
-//     const { closure: closure2 } = closure(fd.lhs, fds2);
-//     const isSubset = [...fd.rhs].every((attr) => closure2.has(attr));
-//     equivalent = equivalent && isSubset;
-//     solution += `\\textbf{Xét phụ thuộc hàm} $${[...fd.lhs].join("")} \\to ${[
-//       ...fd.rhs,
-//     ].join("")}$ từ $F_1$: $(${[...fd.lhs].join("")})^+ = \\{${[
-//       ...closure2,
-//     ].join(", ")}\\}$ trong $F_2$. `;
 
-//     if (isSubset) {
-//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\subseteq (${[
-//         ...fd.lhs,
-//       ].join("")})^+$ nên phụ thuộc hàm này được $F_2$ suy ra.\n\n`;
-//     } else {
-//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\nsubseteq (${[
-//         ...fd.lhs,
-//       ].join(
-//         ""
-//       )})^+$ nên phụ thuộc hàm này không được $F_2$ suy ra. Do đó, $F_1$ và $F_2$ không tương đương.\n\n`;
-//       return solution;
-//     }
-//   }
+// Xác định dạng chuẩn của quan hệ
+export function determineNormalForm(fds: FunctionalDependency[]): string {
+  // ✅ Đã xóa định nghĩa hàm helper (formatSet, formatAttrs) ở đây
 
-//   for (const fd of fds2) {
-//     const { closure: closure1 } = closure(fd.lhs, fds1);
-//     const isSubset = [...fd.rhs].every((attr) => closure1.has(attr));
-//     equivalent = equivalent && isSubset;
-//     solution += `\\textbf{Xét phụ thuộc hàm} $${[...fd.lhs].join("")} \\to ${[
-//       ...fd.rhs,
-//     ].join("")}$ từ $F_2$: $(${[...fd.lhs].join("")})^+ = \\{${[
-//       ...closure1,
-//     ].join(", ")}\\}$ trong $F_1$. `;
-//     if (isSubset) {
-//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\subseteq (${[
-//         ...fd.lhs,
-//       ].join("")})^+$ nên phụ thuộc hàm này được $F_1$ suy ra.\n\n`;
-//     } else {
-//       solution += `Vì $\\{${[...fd.rhs].join(", ")}\\} \\nsubseteq (${[
-//         ...fd.lhs,
-//       ].join(
-//         ""
-//       )})^+$ nên phụ thuộc hàm này không được $F_1$ suy ra. Do đó, $F_1$ và $F_2$ không tương đương.\n\n`;
-//       return solution;
-//     }
-//   }
+  const allAttributes = getAllAttributes(fds, "both");
+  const { fds: simpleFDs } = splitRHS(fds);
+  const { keys } = findKeys(fds);
 
-//   if (equivalent) {
-//     solution +=
-//       "Vì mọi phụ thuộc hàm của $F_1$ đều được $F_2$ suy ra và ngược lại, nên $F_1$ và $F_2$ là tương đương.";
-//   } else {
-//     solution += "$F_1$ và $F_2$ không tương đương.";
-//   }
-//   return solution;
-// }
+  let solution = "\\section{Xác định dạng chuẩn của quan hệ}\n\n";
 
-// solution +=
-//   "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $\\{" +
-//   [...allAttributes].join(", ") +
-//   "\\}$.\n\n";
+  solution +=
+    "Các thuộc tính trong tập phụ thuộc hàm ban đầu là: $" +
+    formatSet(allAttributes) +
+    "$.\n\n";
+
+  solution += "$$F = \\{" + fdsToLatex(fds) + "\\}$$\n\n";
+
+  if (keys.length === 0) {
+    return (
+      solution +
+      "Không tìm thấy khóa chính (tập phụ thuộc hàm rỗng hoặc không hợp lệ)."
+    );
+  }
+
+  const primeAttrs = new Set<Attribute>();
+  keys.forEach((key) => key.forEach((attr) => primeAttrs.add(attr)));
+
+  const nonPrimeAttrs = new Set<Attribute>();
+  allAttributes.forEach((attr) => {
+    if (!primeAttrs.has(attr)) nonPrimeAttrs.add(attr);
+  });
+
+  solution += "\\subsection{Xác định khóa và thuộc tính}\n\n";
+  solution += `\\begin{itemize}\n`;
+  solution += `\\item \\textbf{Thuộc tính khóa (Prime):} $${formatSet(
+    primeAttrs
+  )}$ (thuộc các khóa: ${keys
+    .map((k) => `$${formatAttrs(k)}$`)
+    .join(", ")}).\n`;
+  solution += `\\item \\textbf{Thuộc tính không khóa (Non-prime):} $${formatSet(
+    nonPrimeAttrs
+  )}$.\n`;
+  solution += `\\end{itemize}\n\n`;
+
+  // BƯỚC 2: KIỂM TRA 2NF
+
+  solution += "\\subsection{Kiểm tra Dạng chuẩn 2 (2NF)}\n\n";
+  solution +=
+    "Dạng chuẩn 2 yêu cầu quan hệ đạt 1NF và \\textit{không} có phụ thuộc bộ phận (thuộc tính không khóa phụ thuộc vào một phần của khóa chính).\n\n";
+
+  let is2NF = true;
+  let violationFD_2NF: FunctionalDependency | null = null;
+  let violationKey_2NF: Set<Attribute> | null = null;
+
+  for (const fd of simpleFDs) {
+    const rhsAttr = [...fd.rhs][0];
+    if (primeAttrs.has(rhsAttr)) continue;
+
+    for (const key of keys) {
+      const lhsArr = [...fd.lhs];
+      const keyArr = [...key];
+      const isSubset = lhsArr.every((val) => key.has(val));
+      const isProper = lhsArr.length < keyArr.length;
+
+      if (isSubset && isProper) {
+        is2NF = false;
+        violationFD_2NF = fd;
+        violationKey_2NF = key;
+        break;
+      }
+    }
+    if (!is2NF) break;
+  }
+
+  if (!is2NF) {
+    solution += `\\textbf{Xét phụ thuộc hàm} $${formatAttrs(
+      violationFD_2NF!.lhs
+    )} \\to ${formatAttrs(violationFD_2NF!.rhs)}$:\n\n`;
+    solution += "\\begin{itemize}\n";
+    solution += `\\item $${formatAttrs(
+      violationFD_2NF!.rhs
+    )}$ là thuộc tính không khóa.\n`;
+    solution += `\\item $${formatAttrs(
+      violationFD_2NF!.lhs
+    )}$ là một phần thực sự của khóa $${formatSet(
+      violationKey_2NF!
+    )}$ (vì $${formatAttrs(violationFD_2NF!.lhs)} \\subset ${formatAttrs(
+      violationKey_2NF!
+    )}$).\n`;
+    solution += `\\item $\\to$ Đây là một \\textbf{phụ thuộc bộ phận}.\n`;
+    solution += "\\end{itemize}\n\n";
+    solution += "Do đó, lược đồ quan hệ \\textbf{không đạt 2NF}.\n\n";
+    solution += "\\textbf{Kết luận} :";
+    solution +=
+      "Vì quan hệ không đạt 2NF, nó cũng \\textbf{không đạt 3NF} và \\textbf{không đạt BCNF}.";
+    return solution;
+  }
+
+  solution +=
+    "Nhận xét: Mọi thuộc tính không khóa đều phụ thuộc đầy đủ vào khóa chính. Quan hệ \\textbf{đạt 2NF}.\n\n";
+
+  // BƯỚC 3: KIỂM TRA 3NF
+
+  solution += "\\subsection{Kiểm tra Dạng chuẩn 3 (3NF)}\n\n";
+  solution +=
+    "Dạng chuẩn 3 yêu cầu đạt 2NF và \\textit{không} có phụ thuộc bắc cầu (thuộc tính không khóa phụ thuộc vào thuộc tính không khóa khác).\n\n";
+
+  let is3NF = true;
+  let violationFD_3NF: FunctionalDependency | null = null;
+
+  for (const fd of simpleFDs) {
+    const rhsAttr = [...fd.rhs][0];
+    if (primeAttrs.has(rhsAttr)) continue;
+
+    let isSuperKey = false;
+    for (const key of keys) {
+      if ([...key].every((k) => fd.lhs.has(k))) {
+        isSuperKey = true;
+        break;
+      }
+    }
+
+    if (!isSuperKey) {
+      is3NF = false;
+      violationFD_3NF = fd;
+      break;
+    }
+  }
+
+  if (!is3NF) {
+    solution += `\\textbf{Xét phụ thuộc hàm} $${formatAttrs(
+      violationFD_3NF!.lhs
+    )} \\to ${formatAttrs(violationFD_3NF!.rhs)}$:\n\n`;
+    solution += "\\begin{itemize}\n";
+    solution += `\\item $${formatAttrs(
+      violationFD_3NF!.rhs
+    )}$ là thuộc tính không khóa.\n`;
+    solution += `\\item $${formatAttrs(
+      violationFD_3NF!.lhs
+    )}$ không phải là siêu khóa (không chứa khóa nào).\n`;
+    solution += `\\item $\\to$ Đây là một \\textbf{phụ thuộc bắc cầu}.\n`;
+    solution += "\\end{itemize}\n\n";
+    solution += "Do đó, lược đồ quan hệ \\textbf{không đạt 3NF}.\n\n";
+    solution += "\\subsection{Kết luận}\n\n";
+    solution +=
+      "Vì quan hệ không đạt 3NF, nó cũng \\textbf{không đạt BCNF}. Dạng chuẩn cao nhất là \\textbf{2NF}.";
+    return solution;
+  }
+
+  solution +=
+    "Nhận xét: Mọi phụ thuộc hàm đều thỏa mãn (vế trái là siêu khóa hoặc vế phải là thuộc tính khóa). Quan hệ \\textbf{đạt 3NF}.\n\n";
+
+  // BƯỚC 4: KIỂM TRA BCNF
+
+  solution += "\\subsection{Kiểm tra Dạng chuẩn Boyce-Codd (BCNF)}\n\n";
+  solution +=
+    "BCNF yêu cầu với mọi phụ thuộc hàm (không hiển nhiên), vế trái phải là siêu khóa.\n\n";
+
+  let isBCNF = true;
+  let violationFD_BCNF: FunctionalDependency | null = null;
+
+  for (const fd of simpleFDs) {
+    if (fd.rhs.has([...fd.lhs][0])) continue;
+
+    let isSuperKey = false;
+    for (const key of keys) {
+      if ([...key].every((k) => fd.lhs.has(k))) {
+        isSuperKey = true;
+        break;
+      }
+    }
+
+    if (!isSuperKey) {
+      isBCNF = false;
+      violationFD_BCNF = fd;
+      break;
+    }
+  }
+
+  if (!isBCNF) {
+    solution += `\\textbf{Xét phụ thuộc hàm} $${formatAttrs(
+      violationFD_BCNF!.lhs
+    )} \\to ${formatAttrs(violationFD_BCNF!.rhs)}$:\n\n`;
+    solution += "\\begin{itemize}\n";
+    solution += `\\item Vế trái $${formatAttrs(
+      violationFD_BCNF!.lhs
+    )}$ không phải là siêu khóa.\n`;
+    solution += `\\item $\\to$ Vi phạm điều kiện BCNF.\n`;
+    solution += "\\end{itemize}\n\n";
+    solution += "\\textbf{Kết luận} :";
+    solution +=
+      "Lược đồ quan hệ \\textbf{không đạt BCNF}. Dạng chuẩn cao nhất là \\textbf{3NF}.";
+    return solution;
+  }
+
+  solution += "Nhận xét: Mọi định thức đều là siêu khóa.\n\n";
+  solution += "\\textbf{Kết luận} :";
+  solution += "Quan hệ \\textbf{đạt chuẩn BCNF}.";
+
+  return solution;
+}
+
+//Kiểm tra tính bảo toàn dữ liệu
+export interface Cell {
+  value: string;
+  isOriginal: boolean;
+  row: number;
+  col: number;
+}
+export interface ChaseStep {
+  description: string;
+  matrix: string[][];
+  highlightCells: { row: number; col: number }[];
+}
+export interface ChaseResult {
+  solution: string;
+  steps: ChaseStep[];
+  isLossless: boolean;
+  headers: string[];
+}
+
+export function matrixToLatex(
+  headers: string[],
+  rows: string[], // mảng này sẽ chứa "R_{1}", "R_{2}"...
+  matrix: string[][],
+  highlightCells: { row: number; col: number }[] = []
+): string {
+  let latex = `\\begin{array}{|c|${"c|".repeat(headers.length)}} \\hline\n`;
+
+  const headerRow = headers.map((h) => `\\text{${h}}`).join(" & ");
+  latex += `\\text{Lược đồ} & ${headerRow} \\\\ \\hline\n`;
+
+  matrix.forEach((row, rowIndex) => {
+    const rowName = rows[rowIndex]; // VD: "R_{1}"
+    const rowCells = row.map((val, colIndex) => {
+      const isHighlight = highlightCells.some(
+        (h) => h.row === rowIndex && h.col === colIndex
+      );
+      return isHighlight ? `\\textcolor{red}{${val}}` : val;
+    });
+    latex += `${rowName} & ${rowCells.join(" & ")} \\\\ \\hline\n`;
+  });
+
+  latex += `\\end{array}`;
+  return latex;
+}
+
+export function checkDataPreservation(
+  fds: FunctionalDependency[],
+  relations: Set<string>[]
+): ChaseResult {
+  const allAttrs = Array.from(getAllAttributes(fds, "both")).sort();
+  const headers = allAttrs;
+
+  const rowNames = relations.map((_, i) => `R_{${i + 1}}`);
+
+  // 1. Khởi tạo bảng ban đầu (Logic a_j chuẩn)
+  const matrix: string[][] = relations.map((rel, rowIndex) => {
+    return allAttrs.map((attr, colIndex) => {
+      if (rel.has(attr)) {
+        return `a_{${colIndex + 1}}`; // a_j (theo cột)
+      } else {
+        return `b_{${rowIndex + 1}${colIndex + 1}}`; // b_ij
+      }
+    });
+  });
+
+  const steps: ChaseStep[] = [];
+  let solution =
+    "\\section{Kiểm tra bảo toàn thông tin (Thuật toán Chase)}\n\n";
+
+  // Thông tin input
+  solution += `\\begin{itemize}\n`;
+  solution += `\\item Lược đồ gốc $R = ${formatSet(new Set(allAttrs))}$.\n`;
+  solution += `\\item Phép tách $\\rho = \\{ ${rowNames.join(", ")} \\}$.\n`;
+  solution += `\\item Tập phụ thuộc hàm $F = \\{ ${fdsToLatex(fds)} \\}$.\n`;
+  solution += `\\end{itemize}\n\n`;
+
+  solution +=
+    "Ta lập bảng tableau ban đầu (điền $a_j$ nếu $R_i$ có thuộc tính $j$, ngược lại điền $b_{ij}$):\n\n";
+  solution += `$$${matrixToLatex(headers, rowNames, matrix)}$$\n\n`;
+
+  steps.push({
+    description: "Bảng khởi tạo",
+    matrix: JSON.parse(JSON.stringify(matrix)),
+    highlightCells: [],
+  });
+
+  // 2. Vòng lặp Chase
+  let changed = true;
+  let loopCount = 0;
+  const MAX_LOOP = 20;
+
+  while (changed && loopCount < MAX_LOOP) {
+    changed = false;
+    loopCount++;
+
+    for (const fd of fds) {
+      const lhsIndices = Array.from(fd.lhs).map((attr) =>
+        allAttrs.indexOf(attr)
+      );
+      const rhsIndices = Array.from(fd.rhs).map((attr) =>
+        allAttrs.indexOf(attr)
+      );
+
+      const groups = new Map<string, number[]>();
+      matrix.forEach((row, rowIndex) => {
+        const key = lhsIndices
+          .map((colIdx) => (colIdx !== -1 ? row[colIdx] : ""))
+          .join("|");
+        groups.set(key, (groups.get(key) || []).concat(rowIndex));
+      });
+
+      for (const [key, rowIndices] of groups) {
+        if (rowIndices.length < 2) continue;
+
+        for (const rhsColIdx of rhsIndices) {
+          if (rhsColIdx === -1) continue;
+
+          const values = rowIndices.map((rIdx) => matrix[rIdx][rhsColIdx]);
+          const uniqueValues = new Set(values);
+
+          if (uniqueValues.size <= 1) continue;
+
+          let targetVal = [...uniqueValues].find((v) => v.startsWith("a"));
+          if (!targetVal) {
+            targetVal = [...uniqueValues].sort(
+              (a, b) => getNumericIndex(a) - getNumericIndex(b)
+            )[0];
+          }
+
+          const valuesToReplace = [...uniqueValues].filter(
+            (v) => v !== targetVal
+          );
+
+          if (valuesToReplace.length > 0) {
+            const stepHighlights: { row: number; col: number }[] = [];
+
+            for (const oldVal of valuesToReplace) {
+              rowIndices.forEach((rIdx) => {
+                if (matrix[rIdx][rhsColIdx] === oldVal) {
+                  matrix[rIdx][rhsColIdx] = targetVal!;
+                  stepHighlights.push({ row: rIdx, col: rhsColIdx });
+                  changed = true;
+                }
+              });
+            }
+
+            if (changed) {
+              const fdLatex = `${Array.from(fd.lhs).join("")} \\to ${Array.from(
+                fd.rhs
+              ).join("")}`;
+              const rowsLatex = rowIndices
+                .map((i) => `R_{${i + 1}}`)
+                .join(", ");
+              const colLatex = allAttrs[rhsColIdx];
+
+              const desc = `Áp dụng PTH $${fdLatex}$: Đồng nhất các dòng $${rowsLatex}$ tại cột $${colLatex}$. (Hợp nhất $${valuesToReplace
+                .map((v) => `$${v}$`)
+                .join(", ")}$ vào $${targetVal}$).`;
+
+              solution += `${desc}\n\n`;
+              solution += `$$${matrixToLatex(
+                headers,
+                rowNames,
+                matrix,
+                stepHighlights
+              )}$$\n\n`;
+
+              steps.push({
+                description: desc,
+                matrix: JSON.parse(JSON.stringify(matrix)),
+                highlightCells: stepHighlights,
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Kết luận
+  const losslessRowIndex = matrix.findIndex((row) =>
+    row.every((cell) => cell.startsWith("a"))
+  );
+  const isLossless = losslessRowIndex !== -1;
+
+  solution += "\\textbf{Kết luận:}\n\n";
+  if (isLossless) {
+    solution += `Dòng $R_{${
+      losslessRowIndex + 1
+    }}$ chứa toàn các ký hiệu $a$ (không còn $b$).\n\n`;
+    solution +=
+      "$\\to$ Lược đồ phân rã \\textbf{BẢO TOÀN THÔNG TIN} (Lossless Join).";
+  } else {
+    solution += "Không có dòng nào chứa toàn các ký hiệu $a$.\n\n";
+    solution +=
+      "$\\to$ Lược đồ phân rã \\textbf{KHÔNG BẢO TOÀN THÔNG TIN} (Lossy Join).";
+  }
+
+  return {
+    solution,
+    steps,
+    isLossless,
+    headers,
+  };
+}
+
+export function checkDependencyPreservation(
+  fds: FunctionalDependency[],
+  relations: Set<Attribute>[]
+): string {
+  const allAttrs = getAllAttributes(fds, "both");
+
+  let solution = "\\section{Kiểm tra bảo toàn phụ thuộc hàm}\n\n";
+
+  // Thông tin input
+  solution += `\\begin{itemize}\n`;
+  solution += `\\item Lược đồ gốc $R = ${formatSet(allAttrs)}$.\n`;
+  solution += `\\item Phép tách $\\rho = \\{ ${relations
+    .map((r) => formatAttrs(r))
+    .join(", ")} \\}$.\n`;
+  solution += `\\item Tập phụ thuộc hàm $F = \\{ ${fdsToLatex(fds)} \\}$.\n`;
+  solution += `\\end{itemize}\n\n`;
+
+  let allPreserved = true;
+
+  // 1. DUYỆT QUA TỪNG PHỤ THUỘC HÀM TRONG F
+  for (const fd of fds) {
+    const fdLatex = `$${formatAttrs(fd.lhs)} \\to ${formatAttrs(fd.rhs)}$`;
+    solution += `\\subsection{Kiểm tra phụ thuộc hàm ${fdLatex}}\n\n`;
+
+    // 2. KIỂM TRA TRƯỜNG HỢP HIỂN NHIÊN
+    const combinedAttrs = new Set([...fd.lhs, ...fd.rhs]);
+    let isObvious = false;
+    let obviousRelation: Set<Attribute> | null = null;
+
+    for (const r of relations) {
+      if (isSubset(combinedAttrs, r)) {
+        isObvious = true;
+        obviousRelation = r;
+        break;
+      }
+    }
+
+    if (isObvious) {
+      solution += `Phụ thuộc hàm này \\textbf{được bảo toàn} (một cách hiển nhiên), vì tất cả các thuộc tính ($${formatAttrs(
+        combinedAttrs
+      )}$) đều nằm trong lược đồ con $R(${formatAttrs(
+        obviousRelation!
+      )})$.\n\n`;
+      continue;
+    }
+
+    // 3. THUẬT TOÁN Z (Chạy ngầm)
+    solution +=
+      "Đây là trường hợp không hiển nhiên. Ta phải dùng thuật toán Z (thuật toán 'đuổi') để tính bao đóng $Z$ của vế trái theo phép chiếu $\\rho$.\n\n";
+
+    const Z = new Set(fd.lhs);
+    let changed = true;
+    let loopCount = 0;
+
+    // --- Bắt đầu chạy ngầm ---
+    while (changed && loopCount < 10) {
+      changed = false;
+      loopCount++;
+
+      for (const [i, r_i] of relations.entries()) {
+        const V = intersection(Z, r_i);
+        if (V.size === 0) continue;
+
+        const { closure: V_plus } = closure(V, fds);
+        const newAttrsInRi = intersection(V_plus, r_i);
+
+        const oldZSize = Z.size;
+        newAttrsInRi.forEach((attr) => Z.add(attr));
+        const newZSize = Z.size;
+
+        if (newZSize > oldZSize) {
+          changed = true;
+        }
+      }
+    }
+    // --- Kết thúc chạy ngầm ---
+
+    // 4. BÁO CÁO KẾT QUẢ (Lời giải)
+    const isPreserved = isSubset(fd.rhs, Z);
+    solution += `\\begin{itemize}\n`;
+    solution += `\\item Khởi tạo: $Z = ${formatSet(fd.lhs)}$.\n`;
+    solution += `\\item Kết quả (sau khi chạy thuật toán): $Z = \\textbf{${formatSet(
+      Z
+    )}}$.\n`;
+    solution += `\\item Kiểm tra vế phải $${formatSet(
+      fd.rhs
+    )} \\subseteq Z$? \n`;
+
+    if (isPreserved) {
+      solution += `\\quad $\\to$ \\textbf{ĐÚNG}. Phụ thuộc hàm này \\textbf{được bảo toàn}.\n`;
+    } else {
+      solution += `\\quad $\\to$ \\textbf{SAI}. Phụ thuộc hàm này \\textbf{KHÔNG được bảo toàn}.\n`;
+      allPreserved = false;
+    }
+    solution += `\\end{itemize}\n\n`;
+  }
+
+  // 5. KẾT LUẬN CUỐI CÙNG
+  solution += "\\section{Kết luận cuối cùng}\n\n";
+  if (allPreserved) {
+    solution += "Tất cả các phụ thuộc hàm trong $F$ đều được bảo toàn.\n\n";
+    solution += "$\\to$ Phép phân rã này \\textbf{BẢO TOÀN PHỤ THUỘC HÀM}.";
+  } else {
+    solution +=
+      "Tồn tại ít nhất một phụ thuộc hàm trong $F$ không được bảo toàn.\n\n";
+    solution +=
+      "$\\to$ Phép phân rã này \\textbf{KHÔNG BẢO TOÀN PHỤ THUỘC HÀM}.\n\n";
+  }
+
+  solution += `\\quad \\textit{Giải thích: Thuật toán Z khởi tạo $Z$ bằng vế trái (LHS). 
+    Nó lặp đi lặp lại qua tất cả các lược đồ con $R_i$. 
+    Tại mỗi $R_i$, nó tính toán những gì $Z$ có thể suy ra thêm (dùng $F$ gốc), 
+    nhưng chỉ giới hạn trong các thuộc tính mà $R_i$ sở hữu. 
+    Kết quả mới được thêm lại vào $Z$. Quá trình dừng lại khi $Z$ không thể lớn thêm. 
+    Mục tiêu là xem $Z$ cuối cùng có chứa được vế phải (RHS) hay không.} \n\n`;
+
+  return solution;
+}
+//Nâng cấp lên 3NF
+export function decomposeTo3NF(fds: FunctionalDependency[]): string {
+  const allAttrs = getAllAttributes(fds, "both");
+  let solution = "\\section{Phân rã thành 3NF (Thuật toán Tổng hợp)}\n\n";
+
+  // Thông tin input
+  solution += `\\begin{itemize}\n`;
+  solution += `\\item Lược đồ gốc $R = ${formatSet(allAttrs)}$.\n`;
+  solution += `\\item Tập phụ thuộc hàm $F = \\{ ${fdsToLatex(fds)} \\}$.\n`;
+  solution += `\\end{itemize}\n\n`;
+
+  // --- BƯỚC 1: TÌM PHỦ TỐI TIỂU (F_min) ---
+  solution += "\\subsection{Bước 1: Tìm Phủ Tối Tiểu ($F_{min}$)}\n\n";
+
+  // Chạy ngầm 3 bước của Phủ Tối Tiểu
+  const { fds: step1FDs } = splitRHS(fds);
+  let currentFDs = removeDuplicateFDs(step1FDs);
+  const step2FDs: FunctionalDependency[] = [];
+  for (let i = 0; i < currentFDs.length; i++) {
+    const fd = currentFDs[i];
+    const otherFDs = currentFDs.filter((_, idx) => idx !== i);
+    if (!isCanMinimizeLHS(fd, otherFDs)) {
+      step2FDs.push(fd);
+    } else {
+      const { minizedFDs } = minimizeLHS(fd, otherFDs);
+      step2FDs.push(...minizedFDs);
+    }
+  }
+  currentFDs = removeDuplicateFDs(step2FDs);
+  const { fds: step3FDs } = removeRedundantFDs(currentFDs);
+  const minimalCoverFDs = step3FDs; // Đây chính là F_min
+
+  solution +=
+    "Sau khi thực hiện 3 bước (tách vế phải, loại bỏ vế trái dư, loại bỏ PTH thừa), ta thu được Phủ Tối Tiểu:\n\n";
+  solution += `$$F_{min} = \\{ ${fdsToLatex(minimalCoverFDs)} \\}$$\n\n`;
+
+  // --- BƯỚC 2: TẠO LƯỢC ĐỒ CON (TỪ F_min) ---
+  solution += "\\subsection{Bước 2: Tạo lược đồ con từ $F_{min}$}\n\n";
+  solution +=
+    "Ta nhóm các PTH trong $F_{min}$ có cùng vế trái lại để tạo các lược đồ con:\n\n";
+
+  const groupedSchemas = new Map<string, Set<Attribute>>();
+  for (const fd of minimalCoverFDs) {
+    const lhsKey = [...fd.lhs].sort().join("");
+    if (!groupedSchemas.has(lhsKey)) {
+      groupedSchemas.set(lhsKey, new Set(fd.lhs));
+    }
+    fd.rhs.forEach((attr) => groupedSchemas.get(lhsKey)!.add(attr));
+  }
+  const newRelations: Set<Attribute>[] = Array.from(groupedSchemas.values());
+
+  solution += `\\begin{itemize}\n`;
+  for (const [i, rel] of newRelations.entries()) {
+    solution += `\\item $R_{${i + 1}}(${formatAttrs(rel)})$ \n`;
+  }
+  solution += `\\end{itemize}\n\n`;
+
+  // --- BƯỚC 3: TÌM KHÓA CHÍNH (CỦA F GỐC) - ĐÃ LÀM RÕ ---
+  solution += "\\subsection{Bước 3: Tìm khóa chính của lược đồ gốc $R$}\n\n";
+
+  // 1. Phân loại thuộc tính (L, R, LR, N)
+  solution +=
+    "Ta sử dụng phương pháp phân loại thuộc tính (dựa trên $F$ gốc):\n";
+  const leftAttrs = getAllAttributes(fds, "left");
+  const rightAttrs = getAllAttributes(fds, "right");
+
+  const L = new Set([...leftAttrs].filter((x) => !rightAttrs.has(x)));
+  const R = new Set([...rightAttrs].filter((x) => !leftAttrs.has(x)));
+  const LR = intersection(leftAttrs, rightAttrs);
+  const N = new Set(
+    [...allAttrs].filter((x) => !leftAttrs.has(x) && !rightAttrs.has(x))
+  );
+
+  solution += `\\begin{itemize}\n`;
+  solution += `\\item Thuộc tính chỉ vế trái (L): $${formatSet(L)}$.\n`;
+  solution += `\\item Thuộc tính chỉ vế phải (R): $${formatSet(R)}$.\n`;
+  solution += `\\item Thuộc tính trung gian (LR): $${formatSet(LR)}$.\n`;
+  solution += `\\item Thuộc tính không xuất hiện (N): $${formatSet(N)}$.\n`;
+  solution += `\\end{itemize}\n\n`;
+
+  // 2. Tính bao đóng tập nguồn
+  const Base = new Set([...L, ...N]); // Tập nguồn = L U N
+  solution += `Tập nguồn (Base) để bắt đầu tìm khóa là (L $\\cup$ N): $${formatSet(
+    Base
+  )}$.\n\n`;
+  const { closure: baseClosure } = closure(Base, fds);
+
+  solution += `Ta tính bao đóng của tập nguồn: ${toLatexClosure(
+    Base,
+    baseClosure
+  )} .\n`;
+
+  // 3. Kết luận về khóa
+  // Chạy hàm findKeys thật để lấy kết quả chính xác (phòng trường hợp L/R/N shortcut bị sai)
+  const { keys } = findKeys(fds);
+
+  if (isSubset(allAttrs, baseClosure) && keys.length === 1) {
+    solution += `Vì bao đóng của $${formatAttrs(
+      Base
+    )}$ chứa tất cả thuộc tính của $R$, nên $${formatSet(
+      Base
+    )}$ là khóa chính duy nhất.\n\n`;
+  } else {
+    // Nếu Base không là khóa, hoặc có nhiều hơn 1 khóa
+    solution += `Bao đóng của tập nguồn không chứa đủ thuộc tính, hoặc tồn tại nhiều khóa. 
+    Sau khi chạy thuật toán tìm khóa đầy đủ, ta có:\n\n`;
+  }
+
+  solution += `Các khóa chính của $R$ là: ${keys
+    .map((k) => `$${formatSet(k)}$`)
+    .join(", ")}.\n\n`;
+
+  // --- BƯỚC 4: KIỂM TRA VÀ THÊM KHÓA (NẾU CẦN) ---
+  solution += "\\subsection{Bước 4: Kiểm tra và thêm khóa (nếu cần)}\n\n";
+
+  let keyIsPresent = false;
+  for (const r of newRelations) {
+    for (const k of keys) {
+      if (isSubset(k, r)) {
+        keyIsPresent = true;
+        solution += `Lược đồ con $R(${formatAttrs(
+          r
+        )})$ đã chứa (bao hàm) khóa chính $${formatSet(k)}$.\n\n`;
+        break;
+      }
+    }
+    if (keyIsPresent) break;
+  }
+
+  if (!keyIsPresent) {
+    solution +=
+      "Không có lược đồ con nào ở Bước 2 chứa khóa chính. Để đảm bảo Bảo toàn thông tin, ta cần thêm một lược đồ con mới chỉ chứa khóa.\n\n";
+    const keyToAdd = keys[0]; // Chọn khóa đầu tiên
+    newRelations.push(keyToAdd);
+    solution += `\\begin{itemize}\n`;
+    solution += `\\item Thêm lược đồ khóa: $R_{khóa}(${formatAttrs(
+      keyToAdd
+    )})$ \n`;
+    solution += `\\end{itemize}\n\n`;
+  } else {
+    solution += "Không cần thêm lược đồ khóa.\n\n";
+  }
+
+  // --- KẾT LUẬN CUỐI CÙNG ---
+  solution += "\\section{Kết luận cuối cùng}\n\n";
+  solution +=
+    "Phép phân rã 3NF (bảo toàn thông tin và bảo toàn phụ thuộc hàm) là:\n\n";
+  solution += `$$\\rho = \\{ ${newRelations
+    .map((r) => formatAttrs(r))
+    .join(", ")} \\}$$`;
+
+  return solution;
+}

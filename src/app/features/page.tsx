@@ -1,28 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, X, Play, Trash2, Settings2 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 import type { Node } from "./feature";
 import {
   areEquivalentFDs,
   createFD,
+  determineNormalForm,
   findCandidateKeys,
   findClousure,
   findMinimalCover,
+  checkDataPreservation,
   FunctionalDependency,
+  ChaseResult,
+  checkDependencyPreservation,
+  decomposeTo3NF, // Hàm này đã được import
 } from "./feature";
 import LatexContentRender from "@/components/LatexContentRender";
 import KeyTree from "./KeyTree";
@@ -32,48 +30,14 @@ import Loading from "@/components/Loading";
 import { useSession } from "next-auth/react";
 import { NotLogin } from "@/components/NotLogin";
 import { useMapping } from "./useMapping";
-import { ProblemType } from "@/types/enum";
-
-const SolveButton = ({
-  handleSolve,
-  isSolved,
-  isCalculating,
-  dependencies,
-}: {
-  handleSolve: () => void;
-  isSolved: boolean;
-  isCalculating: boolean;
-  dependencies: { left: string; right: string }[];
-}) => {
-  return (
-    <Button
-      className="flex-1 cursor-pointer"
-      onClick={handleSolve}
-      disabled={
-        isSolved ||
-        isCalculating ||
-        dependencies.some((d) => !d.left || !d.right)
-      }
-    >
-      {isCalculating ? (
-        <>
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-          Đang giải...
-        </>
-      ) : isSolved ? (
-        <>
-          <Play className="h-4 w-4 mr-2" />
-          Đã giải
-        </>
-      ) : (
-        <>
-          <Play className="h-4 w-4 mr-2" />
-          Bắt đầu giải
-        </>
-      )}
-    </Button>
-  );
-};
+import { ProblemType } from "@/types/enum"; // Đảm bảo bạn đã thêm FDPreservation vào enum này
+import NotSolution from "./NotSolution";
+import InputCard from "./InputCard";
+import Example from "./Example";
+import Header from "./Header";
+import ProblemTabs from "./ProblemTabs";
+import RelationTable from "./RelationTable";
+import { ChaseTable } from "./ChaseTable";
 
 export default function FeaturePage() {
   const { data: session, status } = useSession();
@@ -84,6 +48,7 @@ export default function FeaturePage() {
   const [secondDependencies, setSecondDependencies] = useState<
     { left: string; right: string }[]
   >([{ left: "", right: "" }]);
+
   const [solution, setSolution] = useState<string>("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [problemType, setProblemType] = useState<ProblemType>(
@@ -93,6 +58,9 @@ export default function FeaturePage() {
   const [steps, setSteps] = useState<Node[]>([]);
   const [isSolved, setIsSolved] = useState(false);
   const [attrsToClose, setAttrsToClose] = useState<string>("");
+
+  const [relations, setRelations] = useState<string[]>([""]);
+  const [chaseResult, setChaseResult] = useState<ChaseResult | null>(null);
 
   const {
     showMapping,
@@ -106,16 +74,31 @@ export default function FeaturePage() {
     reverseMapping,
     reset,
   } = useMapping();
+
+  const addRelation = () => {
+    setIsSolved(false);
+    setRelations([...relations, ""]);
+  };
+  const removeRelation = (index: number) => {
+    setIsSolved(false);
+    setRelations(relations.filter((_, i) => i !== index));
+  };
+  const updateRelation = (index: number, value: string) => {
+    setIsSolved(false);
+    setRelations(relations.map((rel, i) => (i === index ? value : rel)));
+  };
+  const clearAllRelations = () => {
+    setIsSolved(false);
+    setRelations([""]);
+  };
   const addDependency = () => {
     setIsSolved(false);
     setDependencies([...dependencies, { left: "", right: "" }]);
   };
-
   const removeDependency = (index: number) => {
     setIsSolved(false);
     setDependencies(dependencies.filter((_, i) => i !== index));
   };
-
   const updateDependency = (
     index: number,
     field: "left" | "right",
@@ -128,26 +111,21 @@ export default function FeaturePage() {
       )
     );
   };
-
   const clearAll = () => {
     setIsSolved(false);
     setDependencies([{ left: "", right: "" }]);
     setSolution("");
     setSteps([]);
+    setChaseResult(null);
   };
-
-  //Second
-  // Thêm sau clearAll
   const addSecondDependency = () => {
     setIsSolved(false);
     setSecondDependencies([...secondDependencies, { left: "", right: "" }]);
   };
-
   const removeSecondDependency = (index: number) => {
     setIsSolved(false);
     setSecondDependencies(secondDependencies.filter((_, i) => i !== index));
   };
-
   const updateSecondDependency = (
     index: number,
     field: "left" | "right",
@@ -160,15 +138,15 @@ export default function FeaturePage() {
       )
     );
   };
-
   const clearSecondAll = () => {
     setIsSolved(false);
     setSecondDependencies([{ left: "", right: "" }]);
   };
-  //End Second
 
   const handleSolve = async () => {
     setIsCalculating(true);
+    setChaseResult(null);
+
     try {
       if (showMapping && Object.keys(attributeMapping).length === 0) {
         throw new Error(
@@ -185,6 +163,7 @@ export default function FeaturePage() {
           );
         }
       });
+
       let mappedDependencies = dependencies;
       if (showMapping) {
         mappedDependencies = applyMapping(dependencies);
@@ -192,14 +171,27 @@ export default function FeaturePage() {
       const fds: FunctionalDependency[] = mappedDependencies.map((dep) =>
         createFD(dep.left, dep.right)
       );
-
-      const validation = validateInput(problemType, fds, attrsToClose);
+      const validation = validateInput(
+        problemType,
+        fds,
+        attrsToClose,
+        relations
+      );
       if (!validation.valid) {
         throw new Error(validation.error);
       }
-
       let result: string = "";
       let calculatedSteps: Node[] = [];
+      let parsedRelations: Set<string>[] = [];
+      if (
+        problemType === ProblemType.DataPreservation ||
+        problemType === ProblemType.FDPreservation
+      ) {
+        parsedRelations = relations.map((relStr) => {
+          const cleaned = relStr.replace(/[^a-zA-Z0-9]/g, "");
+          return new Set(cleaned.split(""));
+        });
+      }
 
       if (problemType === ProblemType.MinimalCover) {
         result = findMinimalCover(fds);
@@ -228,7 +220,18 @@ export default function FeaturePage() {
           createFD(dep.left, dep.right)
         );
         result = areEquivalentFDs(fds1, fds2);
+      } else if (problemType === ProblemType.NormalForm) {
+        result = determineNormalForm(fds);
+      } else if (problemType === ProblemType.DataPreservation) {
+        const data = checkDataPreservation(fds, parsedRelations);
+        setChaseResult(data);
+        result = data.solution;
+      } else if (problemType === ProblemType.FDPreservation) {
+        result = checkDependencyPreservation(fds, parsedRelations);
+      } else if (problemType === ProblemType.Decompose3NF) {
+        result = decomposeTo3NF(fds);
       }
+
       setTimeout(() => {
         setIsSolved(true);
         if (showMapping) {
@@ -252,7 +255,7 @@ export default function FeaturePage() {
           const y = element.getBoundingClientRect().top + window.pageYOffset;
           window.scrollTo({ top: y, behavior: "smooth" });
         }
-      }, 2000);
+      }, 1000);
     } catch (error) {
       showToast({
         title: "Lỗi",
@@ -269,9 +272,13 @@ export default function FeaturePage() {
   useEffect(() => {
     if (!session) return;
     setIsSolved(false);
-    setSolution("");
-    setSteps([]);
   }, [problemType, session]);
+
+  useEffect(() => {
+    setSolution("");
+    setChaseResult(null);
+    setSteps([]);
+  }, [problemType]);
 
   if (status === "loading")
     return (
@@ -283,436 +290,137 @@ export default function FeaturePage() {
   if (!session) {
     return <NotLogin />;
   }
-  const user = session.user;
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {problemType === ProblemType.MinimalCover
-              ? "Giải Phủ Tối Tiểu"
-              : problemType === ProblemType.CandidateKeys
-              ? "Tìm Khóa Chính"
-              : problemType === ProblemType.Closure
-              ? "Tìm Bao Đóng"
-              : user.role === "admin"
-              ? "Xét Tương Đương"
-              : ""}
-          </h1>
-          <p>
-            {problemType === ProblemType.MinimalCover
-              ? "Nhập các phụ thuộc hàm để tìm phủ tối tiểu"
-              : problemType === ProblemType.CandidateKeys
-              ? "Nhập các phụ thuộc hàm để tìm các khóa chính"
-              : problemType === ProblemType.Closure
-              ? "Nhập các phụ thuộc hàm và thuộc tính để tìm bao đóng"
-              : "Nhập 2 tập phụ thuộc hàm để xét tính tương đương"}
-          </p>
-        </div>
-
-        <Tabs
-          value={problemType}
-          onValueChange={(v) => setProblemType(v as ProblemType)}
-          className="mb-6"
-        >
-          <TabsList
-            className={
-              "mb-20 md:mb-3 grid w-full grid-cols-1  max-w-xl mx-auto " +
-              (user.role === "admin" ? " md:grid-cols-4" : "md:grid-cols-3")
-            }
-          >
-            <TabsTrigger
-              className="cursor-pointer"
-              value={ProblemType.MinimalCover}
-            >
-              Tìm phủ tối tiểu
-            </TabsTrigger>
-            <TabsTrigger
-              className="cursor-pointer"
-              value={ProblemType.CandidateKeys}
-            >
-              Tìm khóa chính
-            </TabsTrigger>
-            <TabsTrigger className="cursor-pointer" value={ProblemType.Closure}>
-              Tìm bao đóng
-            </TabsTrigger>
-            {user.role === "admin" && (
-              <TabsTrigger
-                className="cursor-pointer"
-                value={ProblemType.Equivalence}
-              >
-                Xét tương đương
-              </TabsTrigger>
-            )}
-          </TabsList>
-        </Tabs>
+        <Header problemType={problemType} />
+        <ProblemTabs
+          problemType={problemType}
+          setProblemType={setProblemType}
+        />
 
         <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
-          <Card className="xl:col-span-1">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Phụ thuộc hàm</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary">{dependencies.length}</Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowMapping(!showMapping)}
-                    className={`cursor-pointer ${
-                      showMapping
-                        ? "bg-blue-500 text-white hover:bg-blue-600 border-blue-500"
-                        : ""
-                    }`}
-                  >
-                    <Settings2 className="h-4 w-4 mr-1" />
-                    Mapping
-                  </Button>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Nhập các phụ thuộc hàm theo dạng: A → B
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              {showMapping && (
-                <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">
-                      Mapping thuộc tính dài
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Chuyển đổi thuộc tính dài (VD: MONHOC) thành chữ cái ngắn
-                      (VD: A)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {Object.entries(attributeMapping).map(
-                      ([longName, shortName]) => (
-                        <div key={longName} className="flex items-center gap-2">
-                          <Input
-                            placeholder="MONHOC"
-                            value={longName}
-                            onChange={(e) =>
-                              updateMapping(longName, e.target.value)
-                            }
-                            className="flex-1"
-                          />
-                          <span className="text-lg font-bold">→</span>
-                          <Input
-                            value={shortName}
-                            disabled
-                            className="w-16 text-center bg-slate-100 dark:bg-slate-800"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeMapping(longName)}
-                            className="cursor-pointer hover:bg-red-100 dark:hover:bg-red-900"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        onClick={addMapping}
-                        className=" cursor-pointer"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Thêm mapping
-                      </Button>
-                      <Button
-                        onClick={reset}
-                        disabled={Object.keys(attributeMapping).length === 0}
-                        variant="outline"
-                        className="cursor-pointer hover:bg-red-600 hover:text-white"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Xóa tất cả
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              {dependencies.map((dep, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="w-8 h-8 flex items-center justify-center"
-                    >
-                      {index + 1}
-                    </Badge>
-                    <div className="flex-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                      <Input
-                        placeholder="ABC"
-                        value={dep.left}
-                        onChange={(e) =>
-                          updateDependency(index, "left", e.target.value)
-                        }
-                        className="text-center placeholder:text-slate-400"
-                      />
-                      <span className="text-lg font-bold">→</span>
-                      <Input
-                        placeholder="DE"
-                        value={dep.right}
-                        onChange={(e) =>
-                          updateDependency(index, "right", e.target.value)
-                        }
-                        className="text-center placeholder:text-slate-400"
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="cursor-pointer hover:bg-red-600 hover:text-white"
-                      onClick={() => removeDependency(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-
-              <Button
-                variant="outline"
-                className="w-full cursor-pointer"
-                onClick={addDependency}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Thêm phụ thuộc hàm
-              </Button>
-
-              {problemType === ProblemType.Closure && (
-                <Input
-                  placeholder={
-                    showMapping
-                      ? "Nhập thuộc tính đã mapping muốn tìm bao đóng, ví dụ MONHOV → A nhập A"
-                      : "Nhập thuộc tính muốn tìm bao đóng, ví dụ ABC"
-                  }
-                  value={attrsToClose}
-                  onChange={(e) => {
-                    setIsSolved(false);
-                    setAttrsToClose(e.target.value);
-                  }}
-                />
-              )}
-            </CardContent>
-
-            <CardFooter className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <SolveButton
-                handleSolve={handleSolve}
-                isSolved={isSolved}
-                isCalculating={isCalculating}
-                dependencies={dependencies}
-              />
-              <Button
-                variant="outline"
-                className="cursor-pointer hover:bg-red-600 hover:text-white"
-                onClick={clearAll}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Xóa tất cả
-              </Button>
-            </CardFooter>
-          </Card>
+          <InputCard
+            dependencies={dependencies}
+            showMapping={showMapping}
+            setShowMapping={setShowMapping}
+            updateDependency={updateDependency}
+            addDependency={addDependency}
+            removeDependency={removeDependency}
+            clearAll={clearAll}
+            attrsToClose={attrsToClose}
+            setAttrsToClose={setAttrsToClose}
+            handleSolve={handleSolve}
+            isSolved={isSolved}
+            setIsSolved={setIsSolved}
+            isCalculating={isCalculating}
+            problemType={problemType}
+            attributeMapping={attributeMapping}
+            updateMapping={updateMapping}
+            addMapping={addMapping}
+            removeMapping={removeMapping}
+            reset={reset}
+          />
 
           {problemType === ProblemType.Equivalence && (
-            <Card className="xl:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Phụ thuộc hàm thứ 2</span>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="mb-2">
-                      {secondDependencies.length}
-                    </Badge>
-                  </div>
-                </CardTitle>
-                <CardDescription>
-                  Nhập các phụ thuộc hàm theo dạng: A → B
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {secondDependencies.map((dep, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="w-8 h-8 flex items-center justify-center"
-                      >
-                        {index + 1}
-                      </Badge>
-                      <div className="flex-1 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                        <Input
-                          placeholder="ABC"
-                          value={dep.left}
-                          onChange={(e) =>
-                            updateSecondDependency(
-                              index,
-                              "left",
-                              e.target.value
-                            )
-                          }
-                          className="text-center placeholder:text-slate-400"
-                        />
-                        <span className="text-lg font-bold">→</span>
-                        <Input
-                          placeholder="DE"
-                          value={dep.right}
-                          onChange={(e) =>
-                            updateSecondDependency(
-                              index,
-                              "right",
-                              e.target.value
-                            )
-                          }
-                          className="text-center placeholder:text-slate-400"
-                        />
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="cursor-pointer hover:bg-red-600 hover:text-white"
-                        onClick={() => removeSecondDependency(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-
-                <Button
-                  variant="outline"
-                  className="w-full cursor-pointer"
-                  onClick={addSecondDependency}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Thêm phụ thuộc hàm
-                </Button>
-              </CardContent>
-
-              <CardFooter className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <SolveButton
-                  handleSolve={handleSolve}
-                  isSolved={isSolved}
-                  isCalculating={isCalculating}
-                  dependencies={secondDependencies}
-                />
-                <Button
-                  variant="outline"
-                  className="cursor-pointer hover:bg-red-600 hover:text-white"
-                  onClick={clearSecondAll}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Xóa tất cả
-                </Button>
-              </CardFooter>
-            </Card>
+            <InputCard
+              dependencies={secondDependencies}
+              showMapping={showMapping}
+              setShowMapping={setShowMapping}
+              updateDependency={updateSecondDependency}
+              addDependency={addSecondDependency}
+              removeDependency={removeSecondDependency}
+              clearAll={clearSecondAll}
+              attrsToClose={attrsToClose}
+              setAttrsToClose={setAttrsToClose}
+              handleSolve={handleSolve}
+              isSolved={isSolved}
+              setIsSolved={setIsSolved}
+              isCalculating={isCalculating}
+              problemType={problemType}
+              attributeMapping={attributeMapping}
+              updateMapping={updateMapping}
+              addMapping={addMapping}
+              removeMapping={removeMapping}
+              reset={reset}
+            />
           )}
 
-          {/* Example Section - Bên trái dưới Input */}
-          {problemType !== ProblemType.Equivalence && (
-            <Card className="xl:col-span-1">
-              <CardHeader>
-                <CardTitle>Ví dụ</CardTitle>
-                <CardDescription>Các ví dụ phổ biến</CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full p-3 cursor-pointer h-auto whitespace-normal text-left justify-start"
-                  onClick={() => {
-                    setIsSolved(false);
-                    setDependencies([
-                      { left: "AB", right: "C" },
-                      { left: "C", right: "A" },
-                      { left: "BC", right: "D" },
-                      { left: "ACD", right: "B" },
-                      { left: "D", right: "EG" },
-                      { left: "BE", right: "C" },
-                      { left: "C", right: "D" },
-                      { left: "CE", right: "G" },
-                    ]);
-                    setSolution("");
-                  }}
-                >
-                  <span className="text-left text-sm text-muted-foreground wrap-break-word whitespace-normal text-wrap">
-                    <b>Ví dụ 1:</b> AB → C, C → A, BC → D, ACD → B, D → EG, BE →
-                    C, C → D, CE → G
-                  </span>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="w-full p-3 cursor-pointer h-auto whitespace-normal text-left justify-start"
-                  onClick={() => {
-                    setIsSolved(false);
-                    setDependencies([
-                      { left: "A", right: "B" },
-                      { left: "B", right: "C" },
-                      { left: "C", right: "D" },
-                    ]);
-                    setSolution("");
-                  }}
-                >
-                  <span className="text-left text-sm text-muted-foreground wrap-break-word whitespace-normal text-wrap">
-                    <b>Ví dụ 2: </b> A → B, B → C, C → D
-                  </span>
-                </Button>
-
-                <Separator />
-
-                <div className="text-sm space-y-2">
-                  <h4 className="font-semibold">Hướng dẫn:</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                    <li>Vế trái: Nhập các thuộc tính (VD: A, AB, ABC)</li>
-                    <li>Vế phải: Nhập các thuộc tính (VD: B, CD)</li>
-                    <li>Không cần nhập ký hiệu →</li>
-                    <li>Có thể nhập nhiều thuộc tính liền nhau</li>
-                    <li className="text-red-500 dark:text-red-300">
-                      <strong>Lưu ý:</strong> Chỉ chấp nhận các thuộc tính a-z,
-                      A-Z, 0-9 và viết liền. Hệ thống sẽ phân biệt viết hoa và
-                      thường. Với thuộc tính dài vui lòng sử dụng tính năng
-                      Mapping
-                    </li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
+          {(problemType === ProblemType.DataPreservation ||
+            problemType === ProblemType.FDPreservation) && (
+            <RelationTable
+              relations={relations}
+              addRelation={addRelation}
+              removeRelation={removeRelation}
+              updateRelation={updateRelation}
+              clearAllRelations={clearAllRelations}
+              isSolved={isSolved}
+            />
           )}
+
+          {problemType !== ProblemType.Equivalence &&
+            problemType !== ProblemType.DataPreservation &&
+            problemType !== ProblemType.FDPreservation && (
+              <Example
+                setDependencies={setDependencies}
+                setIsSolved={setIsSolved}
+                setSolution={setSolution}
+              />
+            )}
 
           <Card ref={solutionRef} className="xl:col-span-2 xl:row-span-2">
             <CardHeader className="p-5 pb-1">
               <CardTitle className="text-base md:text-xl ">Lời giải</CardTitle>
+              {/* ✅ SỬA: Cập nhật mô tả cho FDPreservation */}
               <CardDescription>
-                Các bước tìm phủ tối tiểu của tập phụ thuộc hàm
+                {problemType === ProblemType.DataPreservation
+                  ? "Các bước kiểm tra thuật toán Chase (Bảo toàn thông tin)"
+                  : problemType === ProblemType.FDPreservation
+                  ? "Các bước kiểm tra thuật toán Z (Bảo toàn phụ thuộc hàm)"
+                  : "Chi tiết các bước thực hiện toán"}
               </CardDescription>
             </CardHeader>
 
             <CardContent>
               {isCalculating ? (
+                // ✅ SỬA: Cập nhật text loading
                 <Loading
                   message={
-                    problemType === ProblemType.MinimalCover
-                      ? "Đang tìm phủ tối tiểu..."
+                    problemType === ProblemType.DataPreservation
+                      ? "Đang chạy thuật toán Chase..."
+                      : problemType === ProblemType.FDPreservation
+                      ? "Đang kiểm tra bảo toàn PTH..."
                       : problemType === ProblemType.CandidateKeys
                       ? "Đang tìm khóa chính..."
-                      : "Đang tìm bao đóng..."
+                      : problemType === ProblemType.MinimalCover
+                      ? "Đang tìm phủ tối tiểu..."
+                      : "Đang tính toán..."
                   }
                   size="lg"
                 />
               ) : solution ? (
-                <div>
+                <div className="space-y-8">
                   <div className="max-w-none">
                     <LatexContentRender content={solution} border={false} />
                   </div>
+
+                  {/* ✅ SỬA: Điều kiện này giờ đã đúng, không cần
+                      hiển thị ChaseTable cho FDPreservation
+                  */}
+                  {problemType === ProblemType.DataPreservation &&
+                    chaseResult && (
+                      <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+                        <h3 className="text-lg font-semibold mb-4 text-center">
+                          Minh họa trực quan bảng Tableau
+                        </h3>
+                        <ChaseTable
+                          data={chaseResult}
+                          headers={chaseResult.headers}
+                          rowNames={relations.map((_, i) => `R${i + 1}`)}
+                        />
+                      </div>
+                    )}
 
                   {problemType === ProblemType.CandidateKeys &&
                     steps &&
@@ -726,18 +434,7 @@ export default function FeaturePage() {
                     )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-16 h-16 mb-4 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <Play className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">
-                    Chưa có lời giải
-                  </h3>
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    Nhập các phụ thuộc hàm và nhấn <strong>Bắt đầu giải</strong>{" "}
-                    để xem lời giải chi tiết
-                  </p>
-                </div>
+                <NotSolution />
               )}
             </CardContent>
           </Card>
