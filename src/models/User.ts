@@ -1,5 +1,5 @@
 import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
-
+import mongoose from "mongoose";
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
@@ -46,4 +46,4 @@ export class User {
   updatedAt!: Date;
 }
 
-export const UserModel = getModelForClass(User);
+export const UserModel = mongoose.models.User || getModelForClass(User);

@@ -1,5 +1,5 @@
 import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
-
+import mongoose from "mongoose";
 @modelOptions({
   schemaOptions: {
     timestamps: true,
@@ -23,4 +23,5 @@ export class Question {
   updatedAt!: Date;
 }
 
-export const QuestionModel = getModelForClass(Question);
+export const QuestionModel =
+  mongoose.models.Question || getModelForClass(Question);

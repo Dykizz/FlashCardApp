@@ -41,7 +41,9 @@ export async function GET(
 
   try {
     // populate questionIds để lấy chi tiết question
-    const flashcard = await FlashCardModel.findById(id).populate("questionIds");
+    const flashcard = (await FlashCardModel.findById(id)
+      .populate("questionIds")
+      .lean()) as FlashCardDetail | null;
 
     if (!flashcard) {
       return NextResponse.json(errorResponse("Không tìm thấy FlashCard", 404), {

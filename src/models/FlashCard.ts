@@ -1,7 +1,7 @@
 import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
 import type { Ref } from "@typegoose/typegoose";
 import { Question } from "./Question";
-
+import mongoose from "mongoose";
 @modelOptions({
   schemaOptions: {
     timestamps: true,
@@ -25,4 +25,5 @@ export class FlashCard {
   updatedAt!: Date;
 }
 
-export const FlashCardModel = getModelForClass(FlashCard);
+export const FlashCardModel =
+  mongoose.models.FlashCard || getModelForClass(FlashCard);
