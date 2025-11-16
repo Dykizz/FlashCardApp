@@ -1,30 +1,28 @@
-import { Schema, model, models, Document, ObjectId } from "mongoose";
+import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
+import type { Ref } from "@typegoose/typegoose";
+import { Question } from "./Question";
 
-export interface FlashCard {
-  _id: string | ObjectId;
-  title: string;
-  description: string;
-  questionIds: ObjectId[];
-  subject: string;
-  createdAt: Date;
-  updatedAt: Date;
+@modelOptions({
+  schemaOptions: {
+    timestamps: true,
+  },
+})
+export class FlashCard {
+  _id!: string;
+  @prop({ required: true })
+  title!: string;
+
+  @prop({ required: true })
+  description!: string;
+
+  @prop({ ref: () => Question, type: () => [String], default: [] })
+  questionIds!: Ref<Question>[];
+
+  @prop({ required: true })
+  subject!: string;
+
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
-export type FlashCardDocument = FlashCard & Document;
-
-export const FlashCardSchema = new Schema<FlashCard>(
-  {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    questionIds: {
-      type: [Schema.Types.ObjectId],
-      ref: "Question",
-      default: [],
-    },
-    subject: { type: String, required: true },
-  },
-  { timestamps: true }
-);
-
-export const FlashCardModel =
-  models.FlashCard || model<FlashCard>("FlashCard", FlashCardSchema);
+export const FlashCardModel = getModelForClass(FlashCard);

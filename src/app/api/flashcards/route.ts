@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
-import { FlashCardSchema } from "@/models/FlashCard";
 import { successResponse, errorResponse } from "@/lib/response";
 import { FlashCardBase } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
-import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
-const FlashCard =
-  mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
-
-const FlashCardProgressModel =
-  mongoose.models.FlashCardProgress ||
-  mongoose.model("FlashCardProgress", FlashCardProgressSchema);
+import { FlashCardModel } from "@/models/FlashCard";
+import { FlashCardProgressModel } from "@/models/FlashCardProgress";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -43,7 +36,7 @@ export async function GET(req: NextRequest) {
       "flashcards:all",
       async () => {
         console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
-        return await FlashCard.find({}).sort({ createdAt: -1 }).lean();
+        return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
       },
       900
     );
@@ -62,7 +55,7 @@ export async function GET(req: NextRequest) {
       countMap.set(item._id.toString(), item.count);
     });
 
-    const flashCardBase: FlashCardBase[] = flashcards.map((card: any) => {
+    const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
       const idStr = String(card._id);
       return {
         _id: idStr,

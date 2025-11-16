@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
-import { FlashCardSchema } from "@/models/FlashCard";
 import { successResponse, errorResponse } from "@/lib/response";
 import { getServerSession } from "next-auth/next";
 import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
-
-const FlashCardModel =
-  mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
-const FlashCardProgressModel =
-  mongoose.models.FlashCardProgress ||
-  mongoose.model("FlashCardProgress", FlashCardProgressSchema);
+import { FlashCardModel } from "@/models/FlashCard";
+import { FlashCardProgressModel } from "@/models/FlashCardProgress";
 
 export async function GET(
   req: NextRequest,
@@ -47,7 +40,8 @@ export async function GET(
   }
 
   try {
-    const flashcard = await FlashCardModel.findById(id);
+    // populate questionIds để lấy chi tiết question
+    const flashcard = await FlashCardModel.findById(id).populate("questionIds");
 
     if (!flashcard) {
       return NextResponse.json(errorResponse("Không tìm thấy FlashCard", 404), {
@@ -55,7 +49,8 @@ export async function GET(
       });
     }
 
-    const questions = flashcard.questionIds as any[];
+    // @ts-ignore
+    const questions = flashcard.questionIds; // đã populate, không cần cast as any[]
 
     const peopleLearned = await FlashCardProgressModel.countDocuments({
       flashCardId: flashcard._id,
@@ -65,10 +60,10 @@ export async function GET(
       _id: flashcard._id.toString(),
       title: flashcard.title,
       description: flashcard.description,
-      totalQuestion: flashcard.questionIds.length,
+      totalQuestion: questions.length,
       subject: flashcard.subject,
       peopleLearned,
-      questions: questions.map((q) => ({
+      questions: questions.map((q: any) => ({
         _id: q._id.toString(),
         content: q.content,
         options: q.options,

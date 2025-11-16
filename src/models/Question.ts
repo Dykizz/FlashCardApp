@@ -1,26 +1,26 @@
-import { Schema, model, models, Document, ObjectId } from "mongoose";
+import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
 
-export interface Question {
-  _id: string | ObjectId;
-  content: string;
+@modelOptions({
+  schemaOptions: {
+    timestamps: true,
+  },
+})
+export class Question {
+  _id!: string;
+  @prop({ required: true })
+  content!: string;
+
+  @prop()
   explanation?: string;
-  options: string[];
-  correctAnswer: number;
-  createdAt: Date;
-  updatedAt: Date;
+
+  @prop({ type: () => [String], required: true })
+  options!: string[];
+
+  @prop({ required: true })
+  correctAnswer!: number;
+
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
-export type QuestionDocument = Question & Document;
-
-export const QuestionSchema = new Schema<Question>(
-  {
-    content: { type: String, required: true },
-    explanation: { type: String, required: false },
-    options: { type: [String], required: true },
-    correctAnswer: { type: Number, required: true },
-  },
-  { timestamps: true }
-);
-
-export const QuestionModel =
-  models.Question || model<Question>("Question", QuestionSchema);
+export const QuestionModel = getModelForClass(Question);

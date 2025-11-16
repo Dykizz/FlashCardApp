@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
-import { FlashCardSchema } from "@/models/FlashCard";
 import { successResponse, errorResponse } from "@/lib/response";
 import { getServerSession } from "next-auth/next";
 import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { FlashCardProgressSchema } from "@/models/FlashCardProgress";
 import { authOptions } from "@/lib/auth";
-import { QuestionSchema } from "@/models/Question";
 import { getCached } from "@/lib/cache";
 import { ObjectId } from "mongodb";
 
-const FlashCardModel =
-  mongoose.models.FlashCard || mongoose.model("FlashCard", FlashCardSchema);
-const FlashCardProgressModel =
-  mongoose.models.FlashCardProgress ||
-  mongoose.model("FlashCardProgress", FlashCardProgressSchema);
-const QuestionModel =
-  mongoose.models.Question || mongoose.model("Question", QuestionSchema);
+import { FlashCardModel } from "@/models/FlashCard";
+import { FlashCardProgressModel } from "@/models/FlashCardProgress";
+import { Question } from "@/models/Question";
 
 export async function GET(
   req: NextRequest,
@@ -57,9 +49,10 @@ export async function GET(
       async () => {
         console.log("LOG: Querying Flashcard from DB (Cache Miss)...");
 
-        const flashcard = (await FlashCardModel.findById(id)
-          .populate("questionIds")
-          .lean()) as any;
+        // populate questionIds để lấy chi tiết question
+        const flashcard = await FlashCardModel.findById(id)
+          .populate<{ questionIds: Question[] }>("questionIds")
+          .lean();
 
         if (!flashcard) return null;
 
@@ -71,7 +64,7 @@ export async function GET(
           description: flashcard.description,
           totalQuestion: questions.length,
           subject: flashcard.subject,
-          questions: questions.map((q: any) => ({
+          questions: questions.map((q) => ({
             _id: q._id.toString(),
             content: q.content,
             options: q.options,
@@ -97,8 +90,8 @@ export async function GET(
         {
           $inc: { count: 1 },
           $setOnInsert: {
-            userId: session.user.id,
-            flashCardId: id,
+            userId: new ObjectId(session.user.id),
+            flashCardId: new ObjectId(id),
           },
         },
         { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -106,7 +99,7 @@ export async function GET(
     }
 
     const peopleLearned = await FlashCardProgressModel.countDocuments({
-      flashCardId: flashcardData._id,
+      flashCardId: new ObjectId(flashcardData._id),
     });
 
     const response: FlashCardDetail = {

@@ -1,10 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import { AuthOptions } from "next-auth";
-import mongoose from "mongoose";
 import dbConnect from "@/lib/mongodb";
-import { UserSchema, UserRole } from "@/models/User";
-
-const User = mongoose.models.User || mongoose.model("User", UserSchema);
+import { UserModel, UserRole } from "@/models/User";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -29,16 +26,16 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       try {
         await dbConnect();
 
         if (!user.email) return false;
 
-        const existingUser = await User.findOne({ email: user.email });
+        const existingUser = await UserModel.findOne({ email: user.email });
 
         if (!existingUser) {
-          await User.create({
+          await UserModel.create({
             email: user.email,
             name: user.name || "",
             image: user.image || "",
@@ -47,7 +44,7 @@ export const authOptions: AuthOptions = {
             lastLogin: new Date(),
           });
         } else {
-          await User.findOneAndUpdate(
+          await UserModel.findOneAndUpdate(
             { email: user.email },
             {
               name: user.name || existingUser.name,
@@ -68,7 +65,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         await dbConnect();
 
-        const dbUser = await User.findOne({ email: user.email });
+        const dbUser = await UserModel.findOne({ email: user.email });
 
         if (dbUser) {
           token.id = dbUser._id.toString();

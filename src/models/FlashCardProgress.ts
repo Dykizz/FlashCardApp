@@ -1,29 +1,25 @@
-import { Schema, model, models, Document, ObjectId } from "mongoose";
+import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
+import type { Ref } from "@typegoose/typegoose";
+import { FlashCard } from "./FlashCard";
+import { User } from "./User";
 
-export interface FlashCardProgress {
-  _id: string | ObjectId;
-  userId: string | ObjectId;
-  flashCardId: ObjectId;
-  count: number;
-  createdAt: Date;
-  updatedAt: Date;
+@modelOptions({
+  schemaOptions: { timestamps: true },
+})
+export class FlashCardProgress {
+  _id!: string;
+
+  @prop({ ref: () => User, required: true })
+  userId!: Ref<User>;
+
+  @prop({ ref: () => FlashCard, required: true })
+  flashCardId!: Ref<FlashCard>;
+
+  @prop({ default: 0 })
+  count!: number;
+
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
-export type FlashCardProgressDocument = FlashCardProgress & Document;
-
-export const FlashCardProgressSchema = new Schema<FlashCardProgress>(
-  {
-    userId: { type: Schema.Types.ObjectId, required: true, ref: "User" },
-    flashCardId: {
-      type: Schema.Types.ObjectId,
-      ref: "FlashCard",
-      required: true,
-    },
-    count: { type: Number, default: 0 },
-  },
-  { timestamps: true }
-);
-
-export const FlashCardProgressModel =
-  models.FlashCardProgress ||
-  model<FlashCardProgress>("FlashCardProgress", FlashCardProgressSchema);
+export const FlashCardProgressModel = getModelForClass(FlashCardProgress);
