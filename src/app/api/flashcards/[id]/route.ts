@@ -50,9 +50,9 @@ export async function GET(
         console.log("LOG: Querying Flashcard from DB (Cache Miss)...");
 
         // populate questionIds để lấy chi tiết question
-        const flashcard = await FlashCardModel.findById(id)
-          .populate<{ questionIds: Question[] }>("questionIds")
-          .lean();
+        const flashcard = await FlashCardModel.findById(id).populate<{
+          questionIds: Question[];
+        }>("questionIds");
 
         if (!flashcard) return null;
 
