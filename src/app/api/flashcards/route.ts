@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   }
 
   await dbConnect();
+  console.log("✅ DB Connected");
   const identifier = session.user.email;
 
   const { success, headers } = await checkRateLimit(identifier, "api");
@@ -44,6 +45,16 @@ export async function GET(req: NextRequest) {
     const flashcards = await FlashCardModel.find({})
       .sort({ createdAt: -1 })
       .lean();
+
+    console.log(
+      "🔍 FlashCardModel collection name:",
+      FlashCardModel.collection.name
+    );
+    console.log(
+      "🔍 Raw flashcards from DB:",
+      flashcards.length,
+      flashcards.slice(0, 2)
+    );
 
     const progressCounts = await FlashCardProgressModel.aggregate([
       {
