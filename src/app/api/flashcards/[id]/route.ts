@@ -11,6 +11,7 @@ import { ObjectId } from "mongodb";
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
 import { Question, QuestionModel } from "@/models/Question";
+import mongoose from "mongoose";
 
 export async function GET(
   req: NextRequest,
@@ -83,23 +84,24 @@ export async function GET(
       });
     }
 
-    if (session.user.id) {
+    if (session.user.id && mongoose.isValidObjectId(session.user.id)) {
       await FlashCardProgressModel.findOneAndUpdate(
-        { userId: new ObjectId(session.user.id), flashCardId: id },
         {
-          $inc: { count: 1 },
-          $setOnInsert: {
-            userId: new ObjectId(session.user.id),
-            flashCardId: new ObjectId(id),
-          },
+          userId: new mongoose.Types.ObjectId(session.user.id),
+          flashCardId: id,
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { $inc: { count: 1 } },
+        { upsert: true, new: true }
       );
     }
 
-    const peopleLearned = await FlashCardProgressModel.countDocuments({
-      flashCardId: new ObjectId(flashcardData._id),
-    });
+    let peopleLearned = 0;
+
+    if (mongoose.isValidObjectId(flashcardData._id)) {
+      peopleLearned = await FlashCardProgressModel.countDocuments({
+        flashCardId: new mongoose.Types.ObjectId(flashcardData._id),
+      });
+    }
 
     const response: FlashCardDetail = {
       ...flashcardData,
