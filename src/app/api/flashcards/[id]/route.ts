@@ -10,7 +10,7 @@ import { ObjectId } from "mongodb";
 
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
-import { Question } from "@/models/Question";
+import { Question, QuestionModel } from "@/models/Question";
 
 export async function GET(
   req: NextRequest,
@@ -49,7 +49,6 @@ export async function GET(
       async () => {
         console.log("LOG: Querying Flashcard from DB (Cache Miss)...");
 
-        // populate questionIds để lấy chi tiết question
         const flashcard = await FlashCardModel.findById(id).populate<{
           questionIds: Question[];
         }>("questionIds");
@@ -64,7 +63,7 @@ export async function GET(
           description: flashcard.description,
           totalQuestion: questions.length,
           subject: flashcard.subject,
-          questions: questions.map((q) => ({
+          questions: questions.map((q: Question) => ({
             _id: q._id.toString(),
             content: q.content,
             options: q.options,
@@ -75,7 +74,7 @@ export async function GET(
 
         return flashcardResponse;
       },
-      3600
+      900
     );
 
     if (!flashcardData) {
