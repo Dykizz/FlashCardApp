@@ -9,6 +9,7 @@ import { authOptions } from "@/lib/auth";
 
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
+import { Card } from "@/components/ui/card";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -66,6 +67,11 @@ export async function GET(req: NextRequest) {
 
       countMap.set(key, Number(item.count || 0));
     });
+
+    const numberOfFlashcards = flashcards.length;
+    console.log(
+      `✅ Fetched ${numberOfFlashcards} flashcards from DB with progress counts for ${countMap.size} flashcards.`
+    );
 
     const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
       const idStr = String(card._id);

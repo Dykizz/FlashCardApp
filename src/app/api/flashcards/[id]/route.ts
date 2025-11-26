@@ -101,6 +101,8 @@ export async function GET(
       peopleLearned = await FlashCardProgressModel.countDocuments({
         flashCardId: new mongoose.Types.ObjectId(flashcardData._id),
       });
+    } else {
+      console.warn(`Invalid flashCardId: ${flashcardData._id}`);
     }
 
     const response: FlashCardDetail = {
