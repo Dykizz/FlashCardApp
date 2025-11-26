@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 @modelOptions({
   schemaOptions: {
     timestamps: true,
+    collection: "flashcards",
   },
 })
 export class FlashCard {
@@ -15,7 +16,7 @@ export class FlashCard {
   @prop({ required: true })
   description!: string;
 
-  @prop({ ref: () => Question, type: () => [String], default: [] })
+  @prop({ ref: () => Question, default: [] })
   questionIds!: Ref<Question>[];
 
   @prop({ required: true })

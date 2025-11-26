@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 @modelOptions({
   schemaOptions: {
     timestamps: true,
+    collection: "questions",
   },
 })
 export class Question {

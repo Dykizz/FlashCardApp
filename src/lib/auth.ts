@@ -1,7 +1,8 @@
 import GoogleProvider from "next-auth/providers/google";
 import { AuthOptions } from "next-auth";
 import dbConnect from "@/lib/mongodb";
-import { UserModel, UserRole } from "@/models/User";
+import { UserModel } from "@/models/User";
+import { UserRole } from "@/types/user.type";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -88,5 +89,9 @@ export const authOptions: AuthOptions = {
       }
       return session;
     },
+  },
+
+  pages: {
+    signIn: "/login",
   },
 };

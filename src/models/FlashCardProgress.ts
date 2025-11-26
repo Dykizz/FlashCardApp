@@ -5,7 +5,7 @@ import { User } from "./User";
 import mongoose from "mongoose";
 
 @modelOptions({
-  schemaOptions: { timestamps: true },
+  schemaOptions: { timestamps: true, collection: "flashcardprogresses" },
 })
 export class FlashCardProgress {
   _id!: string;

@@ -1,13 +1,11 @@
+import { UserRole } from "@/types/user.type";
 import { getModelForClass, prop, modelOptions } from "@typegoose/typegoose";
 import mongoose from "mongoose";
-export enum UserRole {
-  USER = "user",
-  ADMIN = "admin",
-}
 
 @modelOptions({
   schemaOptions: {
     timestamps: true,
+    collection: "users",
   },
 })
 export class User {
@@ -34,8 +32,9 @@ export class User {
 
   @prop({
     required: true,
-    enum: UserRole,
+    enum: Object.values(UserRole),
     default: UserRole.USER,
+    type: String,
   })
   role!: UserRole;
 
