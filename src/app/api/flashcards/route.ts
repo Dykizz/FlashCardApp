@@ -32,17 +32,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // const flashcards = await getCached(
-    //   "flashcards:all",
-    //   async () => {
-    //     console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
-    //     return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
-    //   },
-    //   900
-    // );
-    const flashcards = await FlashCardModel.find({})
-      .sort({ createdAt: -1 })
-      .lean();
+    const flashcards = await getCached(
+      "flashcards:all",
+      async () => {
+        console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
+        return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
+      },
+      900
+    );
+    // const flashcards = await FlashCardModel.find({})
+    //   .sort({ createdAt: -1 })
+    //   .lean();
 
     const progressCounts = await FlashCardProgressModel.aggregate([
       {
@@ -55,7 +55,16 @@ export async function GET(req: NextRequest) {
 
     const countMap = new Map<string, number>();
     progressCounts.forEach((item) => {
-      countMap.set(item._id.toString(), item.count);
+      // bỏ qua các document bị malformed (_id null/undefined)
+      if (!item || item._id == null) return;
+
+      // tạo key an toàn (ObjectId hoặc string)
+      const key =
+        typeof item._id === "object" && typeof item._id.toString === "function"
+          ? item._id.toString()
+          : String(item._id);
+
+      countMap.set(key, Number(item.count || 0));
     });
 
     const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
