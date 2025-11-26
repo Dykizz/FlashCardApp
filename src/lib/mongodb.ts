@@ -33,12 +33,10 @@ async function dbConnect() {
 
   if (!cached.promise) {
     cached.promise = mongoose.connect(MONGODB_URI!).then((mongoose) => {
-      // ⭐ Force register models sau khi connect để đảm bảo collection names đúng
       UserModel;
       FlashCardModel;
       QuestionModel;
       FlashCardProgressModel;
-      SourceArticleModel; // Nếu có
       return mongoose;
     });
   }
