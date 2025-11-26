@@ -1,9 +1,9 @@
+import "reflect-metadata";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/providers/QueryProvider";
-import { Header } from "@/components/Header";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { SessionProvider } from "@/providers/SessionProvider";
 
@@ -30,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="vi" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <ThemeProvider
           attribute="class"
@@ -40,16 +40,11 @@ export default function RootLayout({
         >
           <SessionProvider>
             <QueryProvider>
-              <Header />
-              <main className="min-h-screen">{children}</main>
+              {children}
               <Toaster position="top-right" richColors />
             </QueryProvider>
           </SessionProvider>
         </ThemeProvider>
-
-        <footer className="border-t bg-white/50 dark:bg-slate-950/50 backdrop-blur flex justify-center items-center p-5">
-          <span>© 2025 Flash Card App. All rights reserved. (DCT123C1)</span>
-        </footer>
       </body>
     </html>
   );

@@ -1,4 +1,4 @@
-import { UserRole } from "@/models/User";
+import { UserRole } from "@/types/user.type";
 import "next-auth";
 
 declare module "next-auth" {
