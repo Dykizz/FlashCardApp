@@ -32,14 +32,17 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const flashcards = await getCached(
-      "flashcards:all",
-      async () => {
-        console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
-        return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
-      },
-      900
-    );
+    // const flashcards = await getCached(
+    //   "flashcards:all",
+    //   async () => {
+    //     console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
+    //     return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
+    //   },
+    //   900
+    // );
+    const flashcards = await FlashCardModel.find({})
+      .sort({ createdAt: -1 })
+      .lean();
 
     const progressCounts = await FlashCardProgressModel.aggregate([
       {
