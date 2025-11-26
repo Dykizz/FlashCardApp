@@ -1,5 +1,10 @@
 import mongoose from "mongoose";
 
+import { UserModel } from "@/models/User";
+import { FlashCardModel } from "@/models/FlashCard";
+import { QuestionModel } from "@/models/Question";
+import { FlashCardProgressModel } from "@/models/FlashCardProgress";
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
@@ -27,9 +32,15 @@ async function dbConnect() {
   if (cached.conn) return cached.conn;
 
   if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(MONGODB_URI!)
-      .then((mongoose) => mongoose);
+    cached.promise = mongoose.connect(MONGODB_URI!).then((mongoose) => {
+      // ⭐ Force register models sau khi connect để đảm bảo collection names đúng
+      UserModel;
+      FlashCardModel;
+      QuestionModel;
+      FlashCardProgressModel;
+      SourceArticleModel; // Nếu có
+      return mongoose;
+    });
   }
 
   cached.conn = await cached.promise;
