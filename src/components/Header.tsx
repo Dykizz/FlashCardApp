@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, BookOpen, Home, Menu, Calculator } from "lucide-react";
+import { LogOut, BookOpen, Home, Menu, Calculator, Pencil } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -24,6 +24,12 @@ export function Header() {
   const handleLogout = () => {
     signOut({ callbackUrl: "/login" });
   };
+
+  const menu = [
+    { name: "Thẻ học", href: "/flashcards", icon: Home },
+    { name: "Tính toán", href: "/features", icon: Calculator },
+    // { name: "Luyện viết", href: "/articles", icon: Pencil },
+  ];
 
   if (status === "loading") {
     return (
@@ -57,19 +63,16 @@ export function Header() {
           <span className="sm:hidden">Flashcard</span>
         </Link>
 
-        <div>
-          <Link
-            href="/flashcards"
-            className="hidden md:inline-block text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
-          >
-            Thẻ học
-          </Link>
-          <Link
-            href="/features"
-            className="hidden md:inline-block ml-6 text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
-          >
-            Tính toán
-          </Link>
+        <div className="flex items-center space-x-6">
+          {menu.map((item) => (
+            <Link
+              href={item.href}
+              key={item.name}
+              className="hidden md:inline-block text-sm md:text-lg font-medium text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-slate-100"
+            >
+              {item.name}
+            </Link>
+          ))}
         </div>
 
         {/* User Menu */}
@@ -148,18 +151,18 @@ export function Header() {
                     <span>{displayName}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/flashcards" className="flex items-center">
-                      <Home className="mr-2 h-4 w-4" />
-                      <span>Thẻ học của tôi</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/features">
-                      <Calculator className="mr-2 h-4 w-4" />
-                      <span>Tính toán</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {menu.map((item) => (
+                    <DropdownMenuItem
+                      key={item.name}
+                      asChild
+                      className="cursor-pointer"
+                    >
+                      <Link href={item.href} className="flex items-center">
+                        <item.icon className="mr-2 h-4 w-4" />
+                        <span>{item.name}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem

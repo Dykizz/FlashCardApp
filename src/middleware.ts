@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // Chỉ chặn bot trong production
   const isDev = process.env.NODE_ENV === "development";
 
   if (!isDev) {
@@ -21,5 +20,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*", // Áp dụng cho tất cả API routes
+  matcher: "/api/:path*",
 };

@@ -1,5 +1,5 @@
 "use client";
-import type { Node } from "@/app/features/feature";
+import type { Node } from "@/app/(client)/features/feature";
 import ReactFlow, {
   Node as FlowNode,
   Edge,
