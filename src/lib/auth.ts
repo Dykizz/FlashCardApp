@@ -27,6 +27,13 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(baseUrl + "/api")) {
+        return baseUrl;
+      }
+
+      return url;
+    },
     async signIn({ user }) {
       try {
         await dbConnect();
