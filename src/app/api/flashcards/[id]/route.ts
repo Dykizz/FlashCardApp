@@ -6,8 +6,6 @@ import { FlashCardDetail } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { authOptions } from "@/lib/auth";
 import { getCached } from "@/lib/cache";
-import { ObjectId } from "mongodb";
-
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
 import { Question, QuestionModel } from "@/models/Question";

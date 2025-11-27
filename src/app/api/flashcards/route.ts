@@ -6,10 +6,8 @@ import { checkRateLimit } from "@/lib/rateLimit";
 import { getCached } from "@/lib/cache";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
-import { Card } from "@/components/ui/card";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -21,7 +19,6 @@ export async function GET(req: NextRequest) {
   }
 
   await dbConnect();
-  console.log("✅ DB Connected");
   const identifier = session.user.email;
 
   const { success, headers } = await checkRateLimit(identifier, "api");
@@ -34,26 +31,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // const flashcards = await getCached(
-    //   "flashcards:all",
-    //   async () => {
-    //     console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
-    //     return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
-    //   },
-    //   900
-    // );
-    const flashcards = await FlashCardModel.find({})
-      .sort({ createdAt: -1 })
-      .lean();
-
-    console.log(
-      "🔍 FlashCardModel collection name:",
-      FlashCardModel.collection.name
-    );
-    console.log(
-      "🔍 Raw flashcards from DB:",
-      flashcards.length,
-      flashcards.slice(0, 2)
+    const flashcards = await getCached(
+      "flashcards:all",
+      async () => {
+        console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
+        return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
+      },
+      900
     );
 
     const progressCounts = await FlashCardProgressModel.aggregate([
@@ -67,10 +51,7 @@ export async function GET(req: NextRequest) {
 
     const countMap = new Map<string, number>();
     progressCounts.forEach((item) => {
-      // bỏ qua các document bị malformed (_id null/undefined)
       if (!item || item._id == null) return;
-
-      // tạo key an toàn (ObjectId hoặc string)
       const key =
         typeof item._id === "object" && typeof item._id.toString === "function"
           ? item._id.toString()
@@ -78,11 +59,6 @@ export async function GET(req: NextRequest) {
 
       countMap.set(key, Number(item.count || 0));
     });
-
-    const numberOfFlashcards = flashcards.length;
-    console.log(
-      `✅ Fetched ${numberOfFlashcards} flashcards from DB with progress counts for ${countMap.size} flashcards.`
-    );
 
     const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
       const idStr = String(card._id);
