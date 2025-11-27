@@ -4,6 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { User } from "@/models/User";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserActionCell } from "./UserActionCell";
 
 const formatDate = (date?: string | Date) => {
   if (!date) return "Chưa đăng nhập";
@@ -71,5 +72,16 @@ export const columns: ColumnDef<User>[] = [
         {formatDate(row.getValue("lastLogin"))}
       </span>
     ),
+  },
+  {
+    id: "actions",
+    header: "Hành động",
+    cell: ({ row }) => {
+      const user = row.original;
+
+      return (
+        <UserActionCell userId={user._id} isBanned={user.isBanned ?? false} />
+      );
+    },
   },
 ];

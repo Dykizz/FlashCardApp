@@ -4,6 +4,8 @@ import FlashCard from "@/components/FlashCard";
 import { FlashCardBase } from "@/types/flashCard.type";
 import { SkeletonCard } from "@/components/SkeletonCard";
 import { get } from "@/utils/apiClient";
+import { signOut } from "next-auth/react";
+import { showToast } from "@/utils/toast";
 
 export default function FlashCards() {
   const {
@@ -15,6 +17,14 @@ export default function FlashCards() {
     queryFn: async () => {
       const res = await get<FlashCardBase[]>("/api/flashcards");
       if (!res.success) {
+        if (res.error?.statusCode === 403) {
+          showToast({
+            type: "error",
+            description: "Tài khoản của bạn đã bị khóa",
+            title: "Lỗi xác thực",
+          });
+          await signOut({ callbackUrl: "/login?error=banned" });
+        }
         throw new Error(res.error?.message || "Lỗi tải flashcards");
       }
       return res.data;
@@ -40,7 +50,7 @@ export default function FlashCards() {
     return (
       <div className="text-center py-12">
         <p className="text-red-600 dark:text-red-400 mb-4">
-          Không thể tải flashcards. Vui lòng thử lại.
+          Đã có lỗi xảy ra khi tải flashcards.
         </p>
         <button
           onClick={() => window.location.reload()}

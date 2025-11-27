@@ -38,6 +38,9 @@ export class User {
   })
   role!: UserRole;
 
+  @prop({ default: false })
+  isBanned: boolean;
+
   @prop({ default: Date.now })
   lastLogin?: Date;
 

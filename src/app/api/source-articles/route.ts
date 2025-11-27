@@ -7,7 +7,6 @@ import { SourceArticleModel } from "@/models/LearnWriting/SourceArticle";
 import { CreateArticleDTO } from "@/lib/validators/article.schema";
 import { FilterQuery } from "mongoose";
 import { analyzeAndGenerateContent } from "@/lib/ai-service";
-import { getCached } from "@/lib/cache";
 import { UserRole } from "@/types/user.type";
 export async function POST(req: NextRequest) {
   try {

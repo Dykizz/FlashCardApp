@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
 
     const filter: FilterQuery<typeof UserModel> = {};
 
+    filter._id = { $ne: session.user.id };
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -39,7 +41,6 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // 4. Query DB
     const [users, totalDocs] = await Promise.all([
       UserModel.find(filter)
         .select("-password")

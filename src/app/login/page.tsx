@@ -9,14 +9,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import { BookOpen } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
+
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (!error) return;
+
+    const errorMap: Record<string, string> = {
+      banned: "Tài khoản của bạn đã bị ban do thích thì ban đó:))",
+      AccessDenied: "Bạn không có quyền truy cập vào khu vực này.",
+      server_error: "Lỗi hệ thống. Vui lòng thử lại sau.",
+      default: "Đăng nhập thất bại. Vui lòng thử lại.",
+    };
+    setErrorMessage(errorMap[error] || errorMap.default);
+  }, [error]);
 
   useEffect(() => {
     if (session) {
@@ -78,7 +96,22 @@ export default function LoginPage() {
             Đăng nhập để tiếp tục học với Flash Card App
           </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4 px-4 sm:px-6 pb-6">
+          {errorMessage && (
+            <div className="flex flex-col items-center">
+              <Image
+                src="/meme-nin-13.webp"
+                alt="Meme minh họa lỗi đăng nhập"
+                width={150}
+                height={100}
+              />
+              <div className="font-bold text-destructive max-w-55 mx-auto text-center">
+                {errorMessage}
+              </div>
+            </div>
+          )}
+
           <Button
             onClick={handleGoogleLogin}
             variant="outline"

@@ -30,10 +30,13 @@ export const authOptions: AuthOptions = {
     async signIn({ user }) {
       try {
         await dbConnect();
-
         if (!user.email) return false;
 
         const existingUser = await UserModel.findOne({ email: user.email });
+
+        if (existingUser && existingUser.isBanned) {
+          return "/login?error=banned";
+        }
 
         if (!existingUser) {
           await UserModel.create({
@@ -43,6 +46,7 @@ export const authOptions: AuthOptions = {
             provider: "google",
             role: UserRole.USER,
             lastLogin: new Date(),
+            isBanned: false,
           });
         } else {
           await UserModel.findOneAndUpdate(
@@ -54,18 +58,16 @@ export const authOptions: AuthOptions = {
             }
           );
         }
-
         return true;
       } catch (error) {
         console.error("❌ Error in signIn callback:", error);
-        return false;
+        return "/login?error=server_error";
       }
     },
 
     async jwt({ token, user }) {
       if (user) {
         await dbConnect();
-
         const dbUser = await UserModel.findOne({ email: user.email });
 
         if (dbUser) {
@@ -73,6 +75,7 @@ export const authOptions: AuthOptions = {
           token.name = dbUser.name;
           token.email = dbUser.email;
           token.picture = dbUser.image;
+          token.isBanned = dbUser.isBanned;
           token.role = dbUser.role;
         }
       }
@@ -86,6 +89,26 @@ export const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.image = token.picture as string;
         session.user.role = token.role as UserRole;
+
+        session.user.isBanned = false;
+
+        try {
+          const freshUser = await UserModel.findById(token.id).select(
+            "isBanned role image name"
+          );
+
+          if (freshUser) {
+            session.user.role = freshUser.role;
+            session.user.image = freshUser.image;
+            session.user.name = freshUser.name;
+
+            if (freshUser.isBanned) {
+              session.user.isBanned = true;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching fresh user data:", error);
+        }
       }
       return session;
     },

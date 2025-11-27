@@ -37,6 +37,8 @@ import LevelBadge from "@/components/LevelBadge";
 import { useSession } from "next-auth/react";
 import Loading from "@/components/Loading";
 import { NotLogin } from "@/components/NotLogin";
+import { UserRole } from "@/types/user.type";
+import { showToast } from "@/utils/toast";
 
 export default function StudentPracticePage() {
   const router = useRouter();
@@ -83,6 +85,15 @@ export default function StudentPracticePage() {
         <Loading message="Đang xác thực" size="lg" />
       </div>
     );
+
+  if (status === "authenticated" && session.user.role !== UserRole.ADMIN) {
+    showToast({
+      type: "error",
+      title: "Không có quyền truy cập",
+      description: "Bạn không có quyền truy cập trang này.",
+    });
+    return router.push("/");
+  }
 
   if (!session) {
     return <NotLogin />;
