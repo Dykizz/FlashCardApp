@@ -84,26 +84,6 @@ export const authOptions: AuthOptions = {
           token.picture = dbUser.image;
           token.isBanned = dbUser.isBanned;
           token.role = dbUser.role;
-          token.lastCheck = Date.now();
-        }
-      } else {
-        const now = Date.now();
-        const lastCheck = (token.lastCheck as number) || 0;
-        const FIVE_MINUTES = 1 * 60 * 1000;
-
-        if (now - lastCheck > FIVE_MINUTES) {
-          await dbConnect();
-          const dbUser = await UserModel.findById(token.id).select(
-            "isBanned role image name"
-          );
-
-          if (dbUser) {
-            token.isBanned = dbUser.isBanned;
-            token.role = dbUser.role;
-            token.picture = dbUser.image;
-            token.name = dbUser.name;
-            token.lastCheck = now;
-          }
         }
       }
       return token;
@@ -116,7 +96,27 @@ export const authOptions: AuthOptions = {
         session.user.email = token.email as string;
         session.user.image = token.picture as string;
         session.user.role = token.role as UserRole;
-        session.user.isBanned = (token.isBanned as boolean) || false;
+
+        session.user.isBanned = false;
+
+        try {
+          await dbConnect();
+          const freshUser = await UserModel.findById(token.id).select(
+            "isBanned role image name"
+          );
+
+          if (freshUser) {
+            session.user.role = freshUser.role;
+            session.user.image = freshUser.image;
+            session.user.name = freshUser.name;
+
+            if (freshUser.isBanned) {
+              session.user.isBanned = true;
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching fresh user data:", error);
+        }
       }
       return session;
     },

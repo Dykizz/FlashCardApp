@@ -1,5 +1,5 @@
 import { ApiResponse } from "@/lib/response";
-
+import { signOut } from "next-auth/react";
 export async function fetchWithAuth<T>(
   url: string,
   options: RequestInit = {}
@@ -25,6 +25,10 @@ export async function fetchWithAuth<T>(
         data: null,
         error: { message: "Vui lòng đăng nhập", statusCode: 401 },
       };
+    }
+
+    if (res.status === 403) {
+      signOut({ callbackUrl: "/login?error=banned" });
     }
 
     return data;

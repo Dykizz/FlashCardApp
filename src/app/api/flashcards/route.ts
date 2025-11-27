@@ -18,6 +18,13 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  if (session.user.isBanned) {
+    return NextResponse.json(
+      errorResponse("Tài khoản của bạn đã bị khóa", 403),
+      { status: 403 }
+    );
+  }
+
   await dbConnect();
   const identifier = session.user.email;
 
