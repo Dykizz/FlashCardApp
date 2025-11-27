@@ -3,8 +3,9 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["mongoose", "@typegoose/typegoose"],
   },
-  webpack: (config, { dev, isServer }) => {
+  webpack: (config: any, { dev }: any) => {
     if (!dev) {
+      config.optimization = config.optimization || {};
       config.optimization.minimize = false;
     }
     return config;
