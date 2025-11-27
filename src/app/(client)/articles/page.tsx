@@ -34,13 +34,16 @@ import { get } from "@/utils/apiClient";
 import { useDebounce } from "@/hooks/use-debounce";
 import { Badge } from "@/components/ui/badge";
 import LevelBadge from "@/components/LevelBadge";
+import { useSession } from "next-auth/react";
+import Loading from "@/components/Loading";
+import { NotLogin } from "@/components/NotLogin";
 
 export default function StudentPracticePage() {
   const router = useRouter();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [filterLevel, setFilterLevel] = useState<ArticleLevel | "all">("all");
   const [page, setPage] = useState(1);
+  const { data: session, status } = useSession();
   const limit = 9;
 
   const debouncedSearch = useDebounce(searchQuery, 500);
@@ -73,6 +76,17 @@ export default function StudentPracticePage() {
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, filterLevel]);
+
+  if (status === "loading")
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loading message="Đang xác thực" size="lg" />
+      </div>
+    );
+
+  if (!session) {
+    return <NotLogin />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0B0D14] text-slate-900 dark:text-slate-200 font-sans pb-20 relative overflow-hidden transition-colors duration-300">

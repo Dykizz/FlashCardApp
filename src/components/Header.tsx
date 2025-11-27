@@ -14,6 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, BookOpen, Home, Menu, Calculator, Pencil } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserRole } from "@/types/user.type";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +29,6 @@ export function Header() {
   const menu = [
     { name: "Thẻ học", href: "/flashcards", icon: Home },
     { name: "Tính toán", href: "/features", icon: Calculator },
-    // { name: "Luyện viết", href: "/articles", icon: Pencil },
   ];
 
   if (status === "loading") {
@@ -46,6 +46,11 @@ export function Header() {
         </div>
       </header>
     );
+  }
+
+  if (status === "authenticated" && user?.role === UserRole.ADMIN) {
+    menu.push({ name: "Quản trị", href: "/admin", icon: Pencil });
+    menu.push({ name: "Luyện viết", href: "/articles", icon: Pencil });
   }
 
   const displayName = user?.name;
