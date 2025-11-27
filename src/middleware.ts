@@ -26,11 +26,9 @@ export async function middleware(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
+  console.log("Middleware - User Token:", token);
   if (token && token.isBanned) {
-    return NextResponse.json(
-      errorResponse("Tài khoản của bạn đã bị khóa", 403),
-      { status: 403 }
-    );
+    return NextResponse.redirect(new URL("/login?error=banned", req.url));
   }
 
   return NextResponse.next();
