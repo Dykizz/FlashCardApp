@@ -37,7 +37,7 @@ export function AdminHeader() {
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-20">
+            <SheetContent side="left" className="p-0 ">
               <AdminSidebar />
             </SheetContent>
           </Sheet>
