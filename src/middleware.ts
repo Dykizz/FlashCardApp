@@ -16,6 +16,11 @@ export default withAuth(
         );
       }
     }
+
+    if (req.nextUrl.pathname.startsWith("/api/auth")) {
+      return NextResponse.next();
+    }
+
     const token = req.nextauth.token;
 
     if (token && token.isBanned) {
@@ -39,8 +44,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: [
-    "/api/:path*", 
-    "!/api/auth/:path*", 
-  ],
+  matcher: ["/api/:path*"],
 };
