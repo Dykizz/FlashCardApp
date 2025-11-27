@@ -39,5 +39,8 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/api/(?!auth).*"],
+  matcher: [
+    "/api/:path*", // match tất cả
+    "!/api/auth/:path*", // loại trừ auth
+  ],
 };
