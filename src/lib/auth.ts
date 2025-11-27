@@ -93,6 +93,7 @@ export const authOptions: AuthOptions = {
         session.user.isBanned = false;
 
         try {
+          await dbConnect();
           const freshUser = await UserModel.findById(token.id).select(
             "isBanned role image name"
           );
