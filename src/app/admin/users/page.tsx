@@ -24,11 +24,15 @@ import { get } from "@/utils/apiClient";
 import { useDebounce } from "@/hooks/use-debounce";
 import { User } from "@/models/User"; // Import type
 import { columns } from "./columns";
+import { SortingState } from "@tanstack/react-table";
 
 export default function UsersManagementPage() {
   // State
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "createdAt", desc: true },
+  ]);
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -36,7 +40,14 @@ export default function UsersManagementPage() {
 
   // Query API
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["admin-users", page, limit, debouncedSearch, roleFilter],
+    queryKey: [
+      "admin-users",
+      page,
+      limit,
+      debouncedSearch,
+      roleFilter,
+      sorting,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("page", page.toString());
@@ -44,6 +55,8 @@ export default function UsersManagementPage() {
       if (debouncedSearch) params.append("search", debouncedSearch);
       if (roleFilter !== "all") params.append("role", roleFilter);
 
+      params.append("sort", sorting[0]?.id || "createdAt");
+      params.append("order", sorting[0]?.desc ? "desc" : "asc");
       const res = await get<User[]>(`/api/admin/users?${params.toString()}`);
       if (!res.success) throw new Error(res.error?.message);
 
@@ -106,7 +119,13 @@ export default function UsersManagementPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={users} isLoading={isLoading} />
+      <DataTable
+        columns={columns}
+        data={users}
+        isLoading={isLoading}
+        sorting={sorting}
+        onSortingChange={setSorting}
+      />
 
       {/* Pagination */}
       {!isLoading && users.length > 0 && (

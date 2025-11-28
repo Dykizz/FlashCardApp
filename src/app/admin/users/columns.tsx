@@ -5,6 +5,8 @@ import { User } from "@/models/User";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserActionCell } from "./UserActionCell";
+import { Button } from "@/components/ui/button";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 
 const formatDate = (date?: string | Date) => {
   if (!date) return "Chưa đăng nhập";
@@ -20,10 +22,40 @@ const formatDate = (date?: string | Date) => {
   });
 };
 
+const SortableHeader = ({ column, title }: { column: any; title: string }) => {
+  const sorted = column.getIsSorted();
+
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => {
+        if (sorted === "desc") {
+          column.clearSorting();
+        } else {
+          column.toggleSorting(sorted === "asc");
+        }
+      }}
+      className={`-ml-4 h-8 ${sorted ? "text-primary font-bold" : ""}`}
+    >
+      {title}
+
+      {sorted === "desc" ? (
+        <ArrowDown className="ml-2 h-4 w-4 text-primary" />
+      ) : sorted === "asc" ? (
+        <ArrowUp className="ml-2 h-4 w-4 text-primary" />
+      ) : (
+        <ArrowUpDown className="ml-2 h-4 w-4 text-muted-foreground/50" />
+      )}
+    </Button>
+  );
+};
+
 export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "name",
-    header: "Người dùng",
+    header: ({ column }) => (
+      <SortableHeader column={column} title="Người dùng" />
+    ),
     cell: ({ row }) => {
       const user = row.original;
       return (
@@ -66,7 +98,9 @@ export const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: "lastLogin",
-    header: "Truy cập cuối",
+    header: ({ column }) => (
+      <SortableHeader column={column} title="Truy cập cuối" />
+    ),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground">
         {formatDate(row.getValue("lastLogin"))}

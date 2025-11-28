@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { errorResponse } from "./lib/response";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 
@@ -26,7 +25,10 @@ export async function middleware(req: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET,
   });
 
-  console.log("Middleware - User Token:", token);
+  if (token) {
+    console.log(token.name + " đã truy cập ", req.nextUrl.pathname);
+  }
+
   if (token && token.isBanned) {
     return NextResponse.redirect(new URL("/login?error=banned", req.url));
   }

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import dbConnect from "@/lib/mongodb";
 import { successResponse, errorResponse } from "@/lib/response";
 import { UserModel } from "@/models/User";
-import { FilterQuery } from "mongoose";
+import { FilterQuery, SortOrder } from "mongoose";
 import { UserRole } from "@/types/user.type";
 
 export async function GET(req: NextRequest) {
@@ -23,8 +23,19 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || "";
     const role = searchParams.get("role") || "all";
+    const sort = searchParams.get("sort") || "createdAt";
+    const order = searchParams.get("order") || "desc";
+
+    const sortOption: Record<string, SortOrder> = {};
 
     const filter: FilterQuery<typeof UserModel> = {};
+
+    if (sort) {
+      sortOption[sort] = order === "asc" ? 1 : -1;
+    } else {
+      sortOption.createdAt = -1;
+    }
+    console.log("Sorting by:", sortOption);
 
     filter._id = { $ne: session.user.id };
 
@@ -44,7 +55,7 @@ export async function GET(req: NextRequest) {
     const [users, totalDocs] = await Promise.all([
       UserModel.find(filter)
         .select("-password")
-        .sort({ createdAt: -1 })
+        .sort(sortOption)
         .skip(skip)
         .limit(limit)
         .lean(),
