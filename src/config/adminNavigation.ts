@@ -1,11 +1,10 @@
 import {
   LayoutDashboard,
   Users,
-  Settings,
-  BookOpen,
-  BarChart3,
+  Newspaper,
+  HelpCircle,
+  Layers,
 } from "lucide-react";
-
 export const adminNavItems = [
   {
     title: "Dashboard",
@@ -15,21 +14,21 @@ export const adminNavItems = [
   {
     title: "Quản lý Bài viết",
     href: "/admin/source-articles",
-    icon: BookOpen,
+    icon: Newspaper,
   },
   {
-    title: "Người dùng",
+    title: "Quản lý câu hỏi",
+    href: "/admin/questions",
+    icon: HelpCircle,
+  },
+  {
+    title: "Quản lý người dùng",
     href: "/admin/users",
     icon: Users,
   },
   {
-    title: "Thống kê",
-    href: "/admin/analytics",
-    icon: BarChart3,
-  },
-  {
-    title: "Cài đặt",
-    href: "/admin/settings",
-    icon: Settings,
+    title: "Quản lý Flashcards",
+    href: "/admin/flashcards",
+    icon: Layers,
   },
 ];

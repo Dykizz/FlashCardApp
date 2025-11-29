@@ -25,6 +25,7 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   sorting?: SortingState;
   onSortingChange?: OnChangeFn<SortingState>;
+  meta?: any;
 }
 
 export function DataTable<TData, TValue>({
@@ -33,6 +34,7 @@ export function DataTable<TData, TValue>({
   isLoading,
   sorting,
   onSortingChange,
+  meta,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -43,6 +45,7 @@ export function DataTable<TData, TValue>({
     state: {
       sorting,
     },
+    meta,
   });
 
   return (

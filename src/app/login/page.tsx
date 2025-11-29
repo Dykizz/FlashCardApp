@@ -15,6 +15,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
+import { unknown } from "zod";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -31,6 +32,7 @@ function LoginPageContent() {
       banned: "Tài khoản của bạn đã bị ban do thích thì ban đó:))",
       AccessDenied: "Bạn không có quyền truy cập vào khu vực này.",
       server_error: "Lỗi hệ thống. Vui lòng thử lại sau.",
+      unknown: "Đã xảy ra lỗi không xác định. Vui lòng thử lại.",
       default: "Đăng nhập thất bại. Vui lòng thử lại.",
     };
     setErrorMessage(errorMap[error] || errorMap.default);
@@ -100,12 +102,16 @@ function LoginPageContent() {
         <CardContent className="space-y-4 px-4 sm:px-6 pb-6">
           {errorMessage && (
             <div className="flex flex-col items-center">
-              <Image
-                src="/meme-nin-13.webp"
-                alt="Meme minh họa lỗi đăng nhập"
-                width={150}
-                height={100}
-              />
+              (
+              {error === "banned" && (
+                <Image
+                  src="/meme-nin-13.webp"
+                  alt="Meme minh họa lỗi đăng nhập"
+                  width={150}
+                  height={100}
+                />
+              )}
+              )
               <div className="font-bold text-destructive max-w-55 mx-auto text-center">
                 {errorMessage}
               </div>

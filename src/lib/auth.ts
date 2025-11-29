@@ -3,6 +3,7 @@ import { AuthOptions } from "next-auth";
 import dbConnect from "@/lib/mongodb";
 import { UserModel } from "@/models/User";
 import { UserRole } from "@/types/user.type";
+import { signOut } from "next-auth/react";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -113,6 +114,9 @@ export const authOptions: AuthOptions = {
             if (freshUser.isBanned) {
               session.user.isBanned = true;
             }
+          } else {
+            await signOut({ callbackUrl: "/login?error=banned" });
+            return session;
           }
         } catch (error) {
           console.error("Error fetching fresh user data:", error);

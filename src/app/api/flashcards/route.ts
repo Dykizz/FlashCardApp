@@ -3,7 +3,7 @@ import dbConnect from "@/lib/mongodb";
 import { successResponse, errorResponse } from "@/lib/response";
 import { FlashCardBase } from "@/types/flashCard.type";
 import { checkRateLimit } from "@/lib/rateLimit";
-import { getCached } from "@/lib/cache";
+import { FilterQuery, SortOrder } from "mongoose";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { FlashCardModel } from "@/models/FlashCard";
@@ -38,14 +38,37 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const flashcards = await getCached(
-      "flashcards:all",
-      async () => {
-        console.log("🔴 LOG NÀY HIỆN RA => ĐANG LẤY TỪ DATABASE (MISS CACHE)");
-        return await FlashCardModel.find({}).sort({ createdAt: -1 }).lean();
-      },
-      900
-    );
+    const searchParams = req.nextUrl.searchParams;
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const search = searchParams.get("search") || "";
+    const sort = searchParams.get("sort") || "createdAt";
+    const order = searchParams.get("order") || "desc";
+
+    const sortOption: Record<string, SortOrder> = {};
+    if (sort) {
+      sortOption[sort] = order === "asc" ? 1 : -1;
+    } else {
+      sortOption.createdAt = -1;
+    }
+
+    const filter: FilterQuery<typeof FlashCardModel> = {};
+    if (search) {
+      filter.title = { $regex: search, $options: "i" };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [flashcards, totalDocs] = await Promise.all([
+      FlashCardModel.find(filter)
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      FlashCardModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(totalDocs / limit);
 
     const progressCounts = await FlashCardProgressModel.aggregate([
       {
@@ -81,10 +104,20 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json(successResponse(flashCardBase), {
-      status: 200,
-      headers: Object.fromEntries(Object.entries(headers)),
-    });
+    return NextResponse.json(
+      successResponse(flashCardBase, {
+        page,
+        limit,
+        totalDocs,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      }),
+      {
+        status: 200,
+        headers: Object.fromEntries(Object.entries(headers)),
+      }
+    );
   } catch (err: any) {
     console.error("Error fetching flashcards:", err);
     return NextResponse.json(errorResponse("Failed to fetch flashcards", 500), {
