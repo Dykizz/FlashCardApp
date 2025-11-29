@@ -115,7 +115,7 @@ export const authOptions: AuthOptions = {
               session.user.isBanned = true;
             }
           } else {
-            await signOut({ callbackUrl: "/login?error=banned" });
+            await signOut({ callbackUrl: "/login?error=unknown" });
             return session;
           }
         } catch (error) {
