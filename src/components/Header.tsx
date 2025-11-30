@@ -11,7 +11,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogOut, BookOpen, Home, Menu, Calculator, Pencil } from "lucide-react";
+import {
+  LogOut,
+  BookOpen,
+  Home,
+  Menu,
+  Calculator,
+  Pencil,
+  Newspaper,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserRole } from "@/types/user.type";
@@ -29,7 +38,7 @@ export function Header() {
   const menu = [
     { name: "Thẻ học", href: "/flashcards", icon: Home },
     { name: "Tính toán", href: "/features", icon: Calculator },
-    { name: "Blog ", href: "/posts", icon: Pencil },
+    { name: "Blog ", href: "/posts", icon: Newspaper },
   ];
 
   if (status === "loading") {
@@ -50,7 +59,7 @@ export function Header() {
   }
 
   if (status === "authenticated" && user?.role === UserRole.ADMIN) {
-    menu.push({ name: "Quản trị", href: "/admin", icon: Pencil });
+    menu.push({ name: "Quản trị", href: "/admin", icon: Users });
     menu.push({ name: "Luyện viết", href: "/articles", icon: Pencil });
   }
 
