@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   useQuery,
   keepPreviousData,
@@ -85,8 +85,10 @@ export default function PostsManagementPage() {
         title: "Thành công",
         description: `Đã xóa bài viết ${deletedId}`,
       });
-      queryClient.invalidateQueries({ queryKey: ["admin-posts"] });
-      setPostToDelete(null); // Đóng dialog
+      queryClient.invalidateQueries({
+        queryKey: ["admin-posts", page, limit, debouncedSearch, sorting],
+      });
+      setPostToDelete(null);
     },
     onError: (error: any) => {
       showToast({
@@ -100,6 +102,9 @@ export default function PostsManagementPage() {
 
   const handleDeletePost = (postId: string) => {
     deletePostMutation.mutate(postId);
+    queryClient.invalidateQueries({
+      queryKey: ["admin-posts", page, limit, debouncedSearch, sorting],
+    });
   };
 
   const handleOpenDeleteDialog = (post: Post) => {

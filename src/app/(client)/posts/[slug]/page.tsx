@@ -51,6 +51,7 @@ const getSafeHost = async () => {
 async function getPostDetail(slug: string): Promise<PostDetail> {
   const BASE_URL = await getSafeHost();
   const API_URL = `${BASE_URL}/api/posts/${slug}`;
+  console.log("Fetching post detail from:", API_URL);
 
   const response = await fetch(API_URL, {
     method: "GET",
