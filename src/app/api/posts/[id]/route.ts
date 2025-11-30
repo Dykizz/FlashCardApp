@@ -35,8 +35,10 @@ export async function GET(
     const query: FilterQuery<typeof PostModel> = {};
 
     if (mongoose.Types.ObjectId.isValid(id)) {
+      console.log("Fetching post by ID:", id);
       query._id = id;
     } else {
+      console.log("Fetching post by slug:", id);
       query.slug = id;
     }
 

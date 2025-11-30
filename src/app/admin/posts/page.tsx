@@ -27,7 +27,7 @@ import {
 import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
-import { DataTable } from "@/components/ui/data-table"; // Đảm bảo bạn có component này
+import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { del, get } from "@/utils/apiClient";
 import { useDebounce } from "@/hooks/use-debounce";
