@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { FlashCardModel } from "@/models/FlashCard";
 import { FlashCardProgressModel } from "@/models/FlashCardProgress";
+import { getCached } from "@/lib/cache";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -45,79 +46,93 @@ export async function GET(req: NextRequest) {
     const sort = searchParams.get("sort") || "createdAt";
     const order = searchParams.get("order") || "desc";
 
-    const sortOption: Record<string, SortOrder> = {};
-    if (sort) {
-      sortOption[sort] = order === "asc" ? 1 : -1;
-    } else {
-      sortOption.createdAt = -1;
-    }
+    // ⭐ Cache key bao gồm tất cả params
+    const cacheKey = `flashcards:${page}-${limit}-${search}-${sort}-${order}`;
 
-    const filter: FilterQuery<typeof FlashCardModel> = {};
-    if (search) {
-      filter.title = { $regex: search, $options: "i" };
-    }
+    const result = await getCached(
+      cacheKey,
+      async () => {
+        console.log(`LOG: Querying Flashcards from DB (Cache Miss)...`);
 
-    const skip = (page - 1) * limit;
+        const sortOption: Record<string, SortOrder> = {};
+        if (sort) {
+          sortOption[sort] = order === "asc" ? 1 : -1;
+        } else {
+          sortOption.createdAt = -1;
+        }
 
-    const [flashcards, totalDocs] = await Promise.all([
-      FlashCardModel.find(filter)
-        .sort(sortOption)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      FlashCardModel.countDocuments(filter),
-    ]);
+        const filter: FilterQuery<typeof FlashCardModel> = {};
+        if (search) {
+          filter.title = { $regex: search, $options: "i" };
+        }
 
-    const totalPages = Math.ceil(totalDocs / limit);
+        const skip = (page - 1) * limit;
 
-    const progressCounts = await FlashCardProgressModel.aggregate([
-      {
-        $group: {
-          _id: "$flashCardId",
-          count: { $sum: 1 },
-        },
+        const [flashcards, totalDocs] = await Promise.all([
+          FlashCardModel.find(filter)
+            .sort(sortOption)
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+          FlashCardModel.countDocuments(filter),
+        ]);
+
+        const totalPages = Math.ceil(totalDocs / limit);
+
+        const progressCounts = await FlashCardProgressModel.aggregate([
+          {
+            $group: {
+              _id: "$flashCardId",
+              count: { $sum: 1 },
+            },
+          },
+        ]);
+
+        const countMap = new Map<string, number>();
+        progressCounts.forEach((item) => {
+          if (!item || item._id == null) return;
+          const key =
+            typeof item._id === "object" &&
+            typeof item._id.toString === "function"
+              ? item._id.toString()
+              : String(item._id);
+
+          countMap.set(key, Number(item.count || 0));
+        });
+
+        const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
+          const idStr = String(card._id);
+          return {
+            _id: idStr,
+            title: card.title,
+            description: card.description,
+            totalQuestion: Array.isArray(card.questionIds)
+              ? card.questionIds.length
+              : 0,
+            subject: card.subject,
+            peopleLearned: countMap.get(idStr) || 0,
+          };
+        });
+
+        return {
+          data: flashCardBase,
+          pagination: {
+            page,
+            limit,
+            totalDocs,
+            totalPages,
+            hasNextPage: page < totalPages,
+            hasPrevPage: page > 1,
+          },
+        };
       },
-    ]);
-
-    const countMap = new Map<string, number>();
-    progressCounts.forEach((item) => {
-      if (!item || item._id == null) return;
-      const key =
-        typeof item._id === "object" && typeof item._id.toString === "function"
-          ? item._id.toString()
-          : String(item._id);
-
-      countMap.set(key, Number(item.count || 0));
-    });
-
-    const flashCardBase: FlashCardBase[] = flashcards.map((card) => {
-      const idStr = String(card._id);
-      return {
-        _id: idStr,
-        title: card.title,
-        description: card.description,
-        totalQuestion: Array.isArray(card.questionIds)
-          ? card.questionIds.length
-          : 0,
-        subject: card.subject,
-        peopleLearned: countMap.get(idStr) || 0,
-      };
-    });
-
-    return NextResponse.json(
-      successResponse(flashCardBase, {
-        page,
-        limit,
-        totalDocs,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-      }),
-      {
-        status: 200,
-        headers: Object.fromEntries(Object.entries(headers)),
-      }
+      900
     );
+
+    return NextResponse.json(successResponse(result.data, result.pagination), {
+      status: 200,
+      headers: Object.fromEntries(Object.entries(headers)),
+    });
   } catch (err: any) {
     console.error("Error fetching flashcards:", err);
     return NextResponse.json(errorResponse("Failed to fetch flashcards", 500), {

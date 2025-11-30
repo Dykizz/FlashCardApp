@@ -4,6 +4,7 @@ import {
   Newspaper,
   HelpCircle,
   Layers,
+  FileText,
 } from "lucide-react";
 export const adminNavItems = [
   {
@@ -20,6 +21,11 @@ export const adminNavItems = [
     title: "Quản lý câu hỏi",
     href: "/admin/questions",
     icon: HelpCircle,
+  },
+  {
+    title: "Quản lý bài đăng",
+    href: "/admin/posts",
+    icon: FileText,
   },
   {
     title: "Quản lý người dùng",

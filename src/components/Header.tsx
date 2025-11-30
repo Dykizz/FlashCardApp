@@ -29,6 +29,7 @@ export function Header() {
   const menu = [
     { name: "Thẻ học", href: "/flashcards", icon: Home },
     { name: "Tính toán", href: "/features", icon: Calculator },
+    { name: "Blog ", href: "/posts", icon: Pencil },
   ];
 
   if (status === "loading") {
