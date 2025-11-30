@@ -377,9 +377,7 @@ export default function PostDetailPage() {
         {/* FOOTER */}
         <div className="mt-10 pt-8 border-t flex justify-end border-gray-200 dark:border-gray-700">
           <Link href="/posts">
-            <Button className="hover:bg-gray-100 ml-auto dark:hover:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">
-              Xem thêm bài viết
-            </Button>
+            <Button>Xem thêm bài viết</Button>
           </Link>
         </div>
       </main>
